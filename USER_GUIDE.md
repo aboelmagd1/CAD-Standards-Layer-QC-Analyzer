@@ -150,14 +150,25 @@ graph LR
 
 ---
 
-### 3. طبقة النقاط الجغرافية في خريطة ArcGIS Pro (`Issue Feature Class`)
-- عند فتح هذه الطبقة داخل ArcGIS Pro Map:
-  - تظهر الأخطاء كنقاط ملونة في مواقعها الفعلية على المخطط.
-  - يمكنك الضغط على أي نقطة بآداة الـ Identify لترى:
-    - `Check_ID`: نوع الفحص (مثل `CHK_OVERLAP`).
-    - `LayerName`: اسم الطبقة التابع لها.
-    - `Severity`: خطورة العيب (`ERROR` أو `WARNING`).
-    - `Details`: شرح دقيق للخطأ (مثال: "تداخل بمساحة 12.5 متر مربع مع القطعة رقم 45").
+### 3. تصدير الأخطاء العشرة في Feature Dataset داخل قاعدة البيانات الافتراضية (Default.gdb)
+- **الموقع الافتراضي**: يتم حفظ النتائج تلقائياً في قاعدة البيانات الافتراضية لمشروعك في ArcGIS Pro (`Default.gdb`) داخل **Feature Dataset** مخصص باسم:
+  `CAD_Geometry_QC_Errors` (أو داخل أي Geodatabase تختارها).
+- **تنظيم الأخطاء العشرة في طبقات مستقلة**:
+  لكل فحص من الفحوصات الهندسية العشرة، يتم إنشاء طبقة Feature Class مستقلة داخل الـ Dataset لتسهيل التصفح والتحكم في إظهار وإخفاء كل نوع خطأ:
+  1. `QC01_Invalid_Geometries`: الأشكال الهندسية غير الصالحة، التقاطعات الذاتية، والإحداثيات الشاذة (NaN).
+  2. `QC02_Overlaps`: تداخلات المضلعات مع إحداثيات ومساحة التداخل الدقيقة بالمتر المربع.
+  3. `QC03_Duplicate_Geometries`: العناصر والعقد المتطابقة تماماً فوق بعضها.
+  4. `QC04_Enclosed_Gaps`: الفجوات والفراغات المغلقة بين قطع الأراضي والمباني.
+  5. `QC05_Multipart_Features`: العناصر متعددة الأجزاء غير المتصلة.
+  6. `QC06_Short_Segments`: الأضلاع القصيرة جداً الميكرونية الأقل من حد التسامح.
+  7. `QC07_Sharp_Angles`: الزوايا الحادة والارتدادات العكسية.
+  8. `QC08_Snap_Issues`: النهايات السائبة وعدم الالتقاط التام (Undershoots / Overshoots).
+  9. `QC09_Redundant_Vertices`: العقد الزائدة الواقعة على خط مستقيم واحد دون تغيير في الاتجاه.
+  10. `QC10_Missing_Junctions`: التقاطعات المفقودة عند تلاقي شبكات الطرق دون وجود عقدة (Node).
+  - **طبقة شاملة (`QC_All_Errors`)**: تضم جميع الأخطاء المكتشفة مع تصنيفها اللوني حسب نوع الخطأ ودرجة خطورته.
+  - **طبقة طبقة الصفر (`QC11_Reserved_Layer_0`)**: تُنشأ إذا احتوت الطبقة المحجوزة `0` على أي عناصر مرسومة.
+- **الإضافة التلقائية للخريطة (Add to Map)**:
+  الطبقات التي تحتوي على أخطاء تُضاف فوراً وتلقائياً إلى خريطة ArcGIS Pro النشطة، مما يتيح لك عمل Zoom مباشر على الخطأ وتعديله أو توجيهه.
 
 ---
 
@@ -298,12 +309,24 @@ After execution, the following deliverable package is saved in your output direc
 
 ---
 
-### 3. ArcGIS Pro Issue Feature Class
-- Geographic Point Feature Class mapping defect locations.
-- **How to Use**:
-  - Drag into your active ArcGIS Pro map.
-  - Points highlight exact vertices or intersections where defects occur.
-  - Inspect attributes (`Check_ID`, `LayerName`, `Severity`, `Details`) to verify issues visually.
+### 3. Geodatabase Feature Dataset with 10 Dedicated Error Layers (`Default.gdb`)
+- **Default Storage**: Defects are automatically exported to a dedicated **Feature Dataset** named `CAD_Geometry_QC_Errors` inside your project's active `Default.gdb` (or custom workspace).
+- **10 Dedicated Error Classes**:
+  Each of the 10 geometry defect checks receives its own distinct Feature Class inside the dataset for granular layer control and symbology:
+  1. `QC01_Invalid_Geometries`: Invalid geometries, bow-ties, self-intersections, and NaN coordinates.
+  2. `QC02_Overlaps`: Polygon overlapping areas with precise $(X, Y)$ centroids and overlap area in $m^2$.
+  3. `QC03_Duplicate_Geometries`: Duplicate/coincident features and vertices.
+  4. `QC04_Enclosed_Gaps`: Enclosed slivers and void gaps between adjacent parcels and buildings.
+  5. `QC05_Multipart_Features`: Disjoint multipart geometry components.
+  6. `QC06_Short_Segments`: Sub-tolerance micro-edges ($< 10$ cm).
+  7. `QC07_Sharp_Angles`: Sharp kickbacks and acute angles ($< 5^\circ$).
+  8. `QC08_Snap_Issues`: Undershoots and overshoots failing vertex connectivity ($< 1$ cm).
+  9. `QC09_Redundant_Vertices`: Superfluous collinear vertices along straight lines.
+  10. `QC10_Missing_Junctions`: Intersecting network lines lacking connection nodes.
+  - **Master Combined Layer (`QC_All_Errors`)**: Consolidates all defect markers with standardized attributes.
+  - **Reserved Layer Layer (`QC11_Reserved_Layer_0`)**: Populated whenever AutoCAD system Layer `0` contains entities.
+- **Automatic Map Loading**:
+  When run within ArcGIS Pro, layers containing issues are **automatically added to your active Map view** for instant visual inspection, selection, and direct remediation.
 
 ---
 

@@ -1,0 +1,78 @@
+CAD REFERENCE-BASED QC & GEOMETRY QUALITY REPORT
+============================================================
+
+REFERENCE: D:\Learning\CAD Standards & Layer QC Analyzer\orig.dwg
+RECEIVED:  D:\Learning\CAD Standards & Layer QC Analyzer\edited.dwg
+DATE:      2026-09-23 21:51:55
+
+Reference Layers: 3
+Received Layers:  3
+Missing Layers:   0
+Extra Layers:     0
+
+Geometry Differences:     0
+Unexpected Feature Types: 4
+Color Differences:        3
+Lineweight Differences:   3
+Linetype Differences:     3
+Closure Issues:           13
+Feature Count Differences:3
+Total QC Issues:          35
+
+------------------------------------------------------------
+
+[ERROR] parcel
+  Reference Count: 24 | Received Count: 32
+  Expected: CLOSED_POLYLINE | Received: MIXED
+  • Feature count delta: +8 (+33.3%)
+  • 12 unexpected OPEN_POLYLINE
+  • 12 open polylines where closed geometry was expected
+  • Color: Reference: 1 vs Received: 1 (1 count delta: +8)
+  • Linetype: Reference: Continuous vs Received: Continuous (Continuous count delta: +8)
+  • Lineweight: Reference: 25 vs Received: 25 (25 count delta: +8)
+
+[ERROR] roud
+  Reference Count: 1 | Received Count: 4
+  Expected: OPEN_POLYLINE | Received: MIXED
+  • Feature count delta: +3 (+300.0%)
+  • 1 unexpected TEXT
+  • 1 unexpected CLOSED_POLYLINE
+  • 1 unexpected POLYGON
+  • Color: Reference: 54 vs Received: 54 (54 count delta: +3)
+  • Linetype: Reference: Continuous vs Received: Continuous (Continuous count delta: +3)
+  • Lineweight: Reference: 25 vs Received: 25 (25 count delta: +3)
+
+[WARNING] text
+  Reference Count: 12 | Received Count: 13
+  Expected: TEXT | Received: TEXT
+  • Feature count delta: +1 (+8.3%)
+  • Color: Reference: 160 vs Received: 160 (160 count delta: +1)
+  • Linetype: Reference: Continuous vs Received: Continuous (Continuous count delta: +1)
+  • Lineweight: Reference: 25 vs Received: 25 (25 count delta: +1)
+
+============================================================
+GEOMETRY QC ISSUES BREAKDOWN BY CAD LAYER
+------------------------------------------------------------
+[ERROR] CAD Layer: parcel (32 features)
+  Total Issues: 6 (6 Errors, 0 Warnings)
+    • CHK_JUNCTION: 6
+
+[PASS] CAD Layer: roud (3 features)
+  Total Issues: 0 (0 Errors, 0 Warnings)
+
+============================================================
+GEOMETRY & TOPOLOGY QC SUMMARY (10 CHECKS)
+------------------------------------------------------------
+  Invalid Geometry        :    0 issues [PASS]
+  Overlap                 :    0 issues [PASS]
+  Duplicate Geometry      :    0 issues [PASS]
+  Enclosed Gap            :    0 issues [PASS]
+  Multipart Feature       :    0 issues [PASS]
+  Short Segment           :    0 issues [PASS]
+  Angle Issue             :    0 issues [PASS]
+  Snap Issue              :    0 issues [PASS]
+  Redundant Vertex        :    0 issues [PASS]
+  Missing Junction        :    6 issues [ERROR]
+
+============================================================
+END OF REPORT

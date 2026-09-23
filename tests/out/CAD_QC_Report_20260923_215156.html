@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAD QC & Comparison Analysis Report</title>
+    <style>
+        :root {
+            --primary: #1F4E79;
+            --primary-light: #2c6da7;
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --info: #17a2b8;
+            --bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --text: #212529;
+            --border: #e9ecef;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 24px;
+        }
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, #0d233a 100%);
+            color: white;
+            padding: 32px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .header h1 { margin: 0 0 8px 0; font-size: 26px; }
+        .header p { margin: 0; opacity: 0.85; font-size: 14px; }
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .kpi-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+            text-align: center;
+        }
+        .kpi-value {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .kpi-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #6c757d;
+            font-weight: 600;
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            margin-bottom: 24px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+            overflow: hidden;
+        }
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            background: #fafbfc;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-header h2 {
+            margin: 0;
+            font-size: 18px;
+            color: var(--primary);
+        }
+        .table-responsive {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        th {
+            background: #f1f4f8;
+            color: #495057;
+            font-weight: 600;
+            padding: 12px 14px;
+            text-align: left;
+            border-bottom: 2px solid var(--border);
+        }
+        td {
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+        tr:hover td {
+            background-color: #fbfcfd;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+        .badge-success { background-color: #d4edda; color: #155724; }
+        .badge-danger { background-color: #f8d7da; color: #721c24; }
+        .badge-warning { background-color: #fff3cd; color: #856404; }
+        .badge-info { background-color: #d1ecf1; color: #0c5460; }
+        .filter-btn {
+            background: #ffffff;
+            border: 1px solid #ced4da;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-left: 6px;
+            font-weight: 500;
+        }
+        .filter-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>CAD Standards & Geometry Quality Control Report</h1>
+            <p>Reference: D:\Learning\CAD Standards &amp; Layer QC Analyzer\orig.dwg | Received: D:\Learning\CAD Standards &amp; Layer QC Analyzer\edited.dwg | Date: 2026-09-23 21:51:55</p>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-value" style="color: var(--primary);">3</div>
+                <div class="kpi-label">Ref Layers</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value" style="color: var(--success);">0</div>
+                <div class="kpi-label">Passed Layers</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value" style="color: var(--danger);">2</div>
+                <div class="kpi-label">Layers with Errors</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value" style="color: var(--danger);">0</div>
+                <div class="kpi-label">Missing Layers</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value" style="color: var(--info);">0</div>
+                <div class="kpi-label">Extra Layers</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-value" style="color: var(--danger);">35</div>
+                <div class="kpi-label">Total QC Issues</div>
+            </div>
+        </div>
+
+        <!-- Layer Overview -->
+        <div class="card">
+            <div class="card-header">
+                <h2>Layer Compliance Overview</h2>
+                <div>
+                    <button class="filter-btn active" onclick="filterLayers('all', this)">All</button>
+                    <button class="filter-btn" onclick="filterLayers('error', this)">Errors</button>
+                    <button class="filter-btn" onclick="filterLayers('warning', this)">Warnings</button>
+                    <button class="filter-btn" onclick="filterLayers('pass', this)">Passed</button>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table id="layerTable">
+                    <thead>
+                        <tr>
+                            <th>Layer Name</th>
+                            <th>Reference Count</th>
+                            <th>Received Count</th>
+                            <th>Expected Geometry</th>
+                            <th>Received Geometry</th>
+                            <th>Status</th>
+                            <th>Findings / Reasons</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+        <tr data-status="error">
+            <td><strong>parcel</strong></td>
+            <td>24</td>
+            <td>32</td>
+            <td>CLOSED_POLYLINE</td>
+            <td>MIXED</td>
+            <td><span class="badge badge-danger">ERROR</span></td>
+            <td><small>• Feature count delta: +8 (+33.3%)</small><br><small>• 12 unexpected OPEN_POLYLINE</small><br><small>• 12 open polylines where closed geometry was expected</small><br><small>• Color: Reference: 1 vs Received: 1 (1 count delta: +8)</small><br><small>• Linetype: Reference: Continuous vs Received: Continuous (Continuous count delta: +8)</small><br><small>• Lineweight: Reference: 25 vs Received: 25 (25 count delta: +8)</small></td>
+        </tr>
+        
+        <tr data-status="error">
+            <td><strong>roud</strong></td>
+            <td>1</td>
+            <td>4</td>
+            <td>OPEN_POLYLINE</td>
+            <td>MIXED</td>
+            <td><span class="badge badge-danger">ERROR</span></td>
+            <td><small>• Feature count delta: +3 (+300.0%)</small><br><small>• 1 unexpected TEXT</small><br><small>• 1 unexpected CLOSED_POLYLINE</small><br><small>• 1 unexpected POLYGON</small><br><small>• Color: Reference: 54 vs Received: 54 (54 count delta: +3)</small><br><small>• Linetype: Reference: Continuous vs Received: Continuous (Continuous count delta: +3)</small><br><small>• Lineweight: Reference: 25 vs Received: 25 (25 count delta: +3)</small></td>
+        </tr>
+        
+        <tr data-status="warning">
+            <td><strong>text</strong></td>
+            <td>12</td>
+            <td>13</td>
+            <td>TEXT</td>
+            <td>TEXT</td>
+            <td><span class="badge badge-warning">WARNING</span></td>
+            <td><small>• Feature count delta: +1 (+8.3%)</small><br><small>• Color: Reference: 160 vs Received: 160 (160 count delta: +1)</small><br><small>• Linetype: Reference: Continuous vs Received: Continuous (Continuous count delta: +1)</small><br><small>• Lineweight: Reference: 25 vs Received: 25 (25 count delta: +1)</small></td>
+        </tr>
+        
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Reference Profile -->
+        <div class="card">
+            <div class="card-header">
+                <h2>Learned Reference Profile (Authoritative CAD Standard)</h2>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Layer Name</th>
+                            <th>Feature Count</th>
+                            <th>Dominant Geometry</th>
+                            <th>Dominant %</th>
+                            <th>Composition</th>
+                            <th>Closure Required</th>
+                            <th>Closure %</th>
+                            <th>Dominant Color</th>
+                            <th>Dominant Linetype</th>
+                            <th>Dominant Lineweight</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+            <tr>
+                <td><strong>parcel</strong></td>
+                <td>24</td>
+                <td><span class="badge badge-info">CLOSED_POLYLINE</span></td>
+                <td>50.0%</td>
+                <td><span class='badge badge-success'>CONSISTENT</span></td>
+                <td>Yes</td>
+                <td>100.0%</td>
+                <td>1</td>
+                <td>Continuous</td>
+                <td>25</td>
+            </tr>
+            
+            <tr>
+                <td><strong>roud</strong></td>
+                <td>1</td>
+                <td><span class="badge badge-info">OPEN_POLYLINE</span></td>
+                <td>100.0%</td>
+                <td><span class='badge badge-success'>CONSISTENT</span></td>
+                <td>No</td>
+                <td>N/A</td>
+                <td>54</td>
+                <td>Continuous</td>
+                <td>25</td>
+            </tr>
+            
+            <tr>
+                <td><strong>text</strong></td>
+                <td>12</td>
+                <td><span class="badge badge-info">TEXT</span></td>
+                <td>100.0%</td>
+                <td><span class='badge badge-success'>CONSISTENT</span></td>
+                <td>No</td>
+                <td>N/A</td>
+                <td>160</td>
+                <td>Continuous</td>
+                <td>25</td>
+            </tr>
+            
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Geometry QC Summary (if present) -->
+        
+        
+            <div class="card mb-4">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Geometry QC — Issues Breakdown by CAD Layer</h5>
+                    <small class="text-light">2 CAD layers evaluated</small>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>CAD Layer Name</th>
+                                    <th>Features Analyzed</th>
+                                    <th>Total Issues</th>
+                                    <th>Errors</th>
+                                    <th>Warnings</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                <tr>
+                    <td><strong>parcel</strong></td>
+                    <td>32</td>
+                    <td><strong>6</strong></td>
+                    <td><span class="text-danger font-weight-bold">6</span></td>
+                    <td><span class="text-warning font-weight-bold">0</span></td>
+                    <td><span class="badge badge-danger">ERROR</span></td>
+                </tr>
+                
+                <tr>
+                    <td><strong>roud</strong></td>
+                    <td>3</td>
+                    <td><strong>0</strong></td>
+                    <td><span class="text-danger font-weight-bold">0</span></td>
+                    <td><span class="text-warning font-weight-bold">0</span></td>
+                    <td><span class="badge badge-success">PASS</span></td>
+                </tr>
+                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+        <div class="card mb-4">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">Geometry & Topology QC Summary (10 Global Checks)</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th>Check ID</th>
+                                <th>Check Name</th>
+                                <th>Issues Count</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            <tr>
+                <td><code>CHK_INVALID_GEOM</code></td>
+                <td><strong>Invalid Geometry</strong></td>
+                <td>0</td>
+                <td><span class="badge badge-success">PASS</span></td>
+            </tr>
+            
+            <tr>
+                <td><code>CHK_OVERLAP</code></td>
+                <td><strong>Overlap</strong></td>
+                <td>0</td>
+                <td><span class="badge badge-success">PASS</span></td>
+            </tr>
+            
+            <tr>
+                <td><code>CHK_DUPLICATE</code></td>
+                <td><strong>Duplicate Geometry</strong></td>
+                <td>0</td>
+                <td><span class="badge badge-success">PASS</span></td>
+            </tr>
+            
+            <tr>
+                <td><code>CHK_GAP</code></td>
+                <td><strong>Enclosed Gap</strong></td>
+                <td>0</td>
+                <td><span class="badge badge-success">PASS</span></td>
+            </tr>
+            
+            <tr>
+                <td><code>CHK_MULTIPART</code></td>
+                <td><strong>Multipart Feature</strong></td>
+                <td>0</td>
+                <td><span class="badge badge-success">PASS</span></td>
+            </tr>
+            
+            <tr>
+                <td><code>CHK_SHORT_SEG</code></td>
+                <td><strong>Short Segment</strong></td>
+                <td>0</td>
+                <td><span class="badge badge-success">PASS</span></td>
+            </tr>
+            
+            <tr>
+                <td><code>CHK_ANGLE</code></td>
+                <td><strong>Angle Issue</strong></td>
+                <td>0</td>
+                <td><span class="badge badge-success">PASS</span></td>
+            </tr>
+            
+            <tr>
+                <td><code>CHK_SNAP</code></td>
+                <td><strong>Snap Issue</strong></td>
+                <td>0</td>
+                <td><span class="badge badge-success">PASS</span></td>
+            </tr>
+            
+            <tr>
+                <td><code>CHK_REDUNDANT</code></td>
+                <td><strong>Redundant Vertex</strong></td>
+                <td>0</td>
+                <td><span class="badge badge-success">PASS</span></td>
+            </tr>
+            
+            <tr>
+                <td><code>CHK_JUNCTION</code></td>
+                <td><strong>Missing Junction</strong></td>
+                <td>6</td>
+                <td><span class="badge badge-danger">ERROR</span></td>
+            </tr>
+            </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+
+        <!-- Issue Details -->
+        <div class="card">
+            <div class="card-header">
+                <h2>Detailed QC Issues Registry</h2>
+                <small class="text-muted">Displaying 35 of 35 issues</small>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Check ID</th>
+                            <th>Severity</th>
+                            <th>Layer Name</th>
+                            <th>Feature OID</th>
+                            <th>Location (X, Y)</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+        <tr>
+            <td>#1</td>
+            <td><code>CHK_FEATURE_COUNT</code></td>
+            <td><span class="badge badge-warning">WARNING</span></td>
+            <td>parcel</td>
+            <td>—</td>
+            <td>—</td>
+            <td>Feature count difference in &#x27;parcel&#x27;: Reference=24, Received=32 (Delta: +8, +33.3%).</td>
+        </tr>
+        
+        <tr>
+            <td>#2</td>
+            <td><code>CHK_UNEXPECTED_FEATURE</code></td>
+            <td><span class="badge badge-danger">ERROR</span></td>
+            <td>parcel</td>
+            <td>—</td>
+            <td>—</td>
+            <td>Layer &#x27;parcel&#x27; contains 12 unexpected OPEN_POLYLINE features not present in Reference profile (Expected: CLOSED_POLYLINE).</td>
+        </tr>
+        
+        <tr>
+            <td>#3</td>
+            <td><code>CHK_CLOSURE</code></td>
+            <td><span class="badge badge-danger">ERROR</span></td>
+            <td>parcel</td>
+            <td>12</td>
+            <td>(51.23, 171.22)</td>
+            <td>Feature 12 in layer &#x27;parcel&#x27; is unclosed. First Point: (51.229, 157.451), Last Point: (51.229, 184.998). Gap: 2754.80 cm &gt; Tolerance: 1.00 cm.</td>
+        </tr>
+        
+        <tr>
+            <td>#4</td>
+            <td><code>CHK_CLOSURE</code></td>
+            <td><span class="badge badge-danger">ERROR</span></td>
+            <td>parcel</td>
+            <td>13</td>
+            <td>(60.63, 185.00)</td>
+            <td>Feature 13 in layer &#x27;parcel&#x27; is unclosed. First Point: (51.229, 184.998), Last Point: (70.034, 184.998). Gap: 1880.54 cm &gt; Tolerance: 1.00 cm.</td>
+        </tr>
+        
+        <tr>
+            <td>#5</td>
+            <td><code>CHK_CLOSURE</code></td>
+            <td><span class="badge badge-danger">ERROR</span></td>
+            <td>parcel</td>
+            <td>14</td>
+            <td>(70.03, 171.34)</td>
+            <td>Feature 14 in layer &#x27;parcel&#x27; is unclosed. First Point: (70.034, 184.998), Last Point: (70.034, 157.682). Gap: 2731.62 cm &gt; Tolerance: 1.00 cm.</td>
+        </tr>
+        
+        <tr>
+            <td>#6</td>
+            <td><code>CHK_CLOSURE</code></td>
+            <td><span class="badge badge-danger">ERROR</span></td>
+            <td>parcel</td>
+            <td>16</td>
+            <td>(59.42, 144.00)</td>
+            <td>Feature 16 in layer &#x27;parcel&#x27; is unclosed. First Point: (51.229, 144.004), Last Point: (67.611, 144.004). Gap: 1638.22 cm &gt; Tolerance: 1.00 cm.</td>
+        </tr>
+        
+        <tr>
+            <td>#7</td>
+            <td><code>CHK_CLOSURE</code></td>
+            <td><span class="badge badge-danger">ERROR</span></td>
+            <td>parcel</td>
+            <td>17</td>
+            <td>(67.61, 137.28)</td>
+            <td>Feature 17 in layer &#x27;parcel&#x27; is unclosed. First Point: (67.611, 144.004), Last Point: (67.611, 130.558). Gap: 1344.64 cm &gt; Tolerance: 1.00 cm.</td>
+        </tr>
+        
+        <tr>
+            <td>#8</td>
+            <td><code>CHK_CLOSURE</code></td>
+            <td><span class="badge badge-danger">ERROR</span></td>
+            <td>parcel</td>
+            <td>18</td>
+            <td>(59.42, 130.56)</td>
+            <td>Feature 18 in layer &#x27;parcel&#x27; is unclosed. First Point: (67.611, 130.558), Last Point: (51.229, 130.558). Gap: 1638.22 cm &gt; Tolerance: 1.00 cm.</td>
+        </tr>
+        
+        <tr>
+            <td>#9</td>
+            <td><code>CHK_CLOSURE</code></td>
+            <td><span class="badge badge-danger">ERROR</span></td>
+            <td>parcel</td>
+            <td>19</td>
+            <td>(51.23, 137.28)</td>
+            <td>Feature 19 in layer &#x27;parcel&#x27; is unclosed. First Point: (51.229, 130.558), Last Point: (51.229, 144.004). Gap: 1344.64 cm &gt; Tolerance: 1.00 cm.</td>
+        </tr>
+        
+        <tr>
+            <td>#10</td>
+            <td><code>CHK_CLOSURE</code></td>
+            <td><span class="badge badge-danger">ERROR</span></td>
+            <td>parcel</td>
+            <td>20</td>
+            <td>(59.42, 103.66)</td>
+            <td>Feature 20 in layer &#x27;parcel&#x27; is unclosed. First Point: (51.229, 103.665), Last Point: (67.611, 103.665). Gap: 1638.22 cm &gt; Tolerance: 1.00 cm.</td>
+        </tr>
+        
+        <tr>
+            <td>#11</td>
+            <td><code>CHK_CLOSURE</code></td>
+            <td><span class="badge badge-danger">ERROR</span></td>
+            <td>parcel</td>
+            <td>21</td>
+            <td>(68.02, 96.94)</td>
+            <td>Feature 21 in layer &#x27;parcel&#x27; is unclosed. First Point: (68.021, 103.665), Last Point: (68.021, 90.219). Gap: 1344.64 cm &gt; Tolerance: 1.00 cm.</td>
+        </tr>
+        
+        <tr>
+            <td>#12</td>
+            <td><code>CHK_CLOSURE</code></td>
+            <td><span class="badge badge-danger">ERROR</span></td>
+            <td>parcel</td>
+            <td>22</td>
+            <td>(59.42, 90.22)</td>
+            <td>Feature 22 in layer &#x27;parcel&#x27; is unclosed. First Point: (67.611, 90.219), Last Point: (51.229, 90.219). Gap: 1638.22 cm &gt; Tolerance: 1.00 cm.</td>
+        </tr>
+        
+        <tr>
+            <td>#13</td>
+            <td><code>CHK_CLOSURE</code></td>
+            <td><span class="badge badge-danger">ERROR</span></td>
+            <td>parcel</td>
+            <td>23</td>
+            <td>(51.23, 96.94)</td>
+            <td>Feature 23 in layer &#x27;parcel&#x27; is unclosed. First Point: (51.229, 90.219), Last Point: (51.229, 103.665). Gap: 1344.64 cm &gt; Tolerance: 1.00 cm.</td>
+        </tr>
+        
+        <tr>
+            <td>#14</td>
+            <td><code>CHK_CLOSURE</code></td>
+            <td><span class="badge badge-danger">ERROR</span></td>
+            <td>parcel</td>
+            <td>24</td>
+            <td>(33.04, 96.94)</td>
+            <td>Feature 24 in layer &#x27;parcel&#x27; is unclosed. First Point: (41.229, 96.942), Last Point: (24.847, 96.942). Gap: 1638.24 cm &gt; Tolerance: 1.00 cm.</td>
+        </tr>
+        
+        <tr>
+            <td>#15</td>
+            <td><code>CHK_CLOSURE</code></td>
+            <td><span class="badge badge-danger">ERROR</span></td>
+            <td>parcel</td>
+            <td>—</td>
+            <td>—</td>
+            <td>Layer &#x27;parcel&#x27; closure difference. Reference: 100.0% Closed. Received: 45.5% Closed (12 open features).</td>
+        </tr>
+        
+        <tr>
+            <td>#16</td>
+            <td><code>CHK_COLOR</code></td>
+            <td><span class="badge badge-warning">WARNING</span></td>
+            <td>parcel</td>
+            <td>—</td>
+            <td>—</td>
+            <td>Layer &#x27;parcel&#x27; Color difference. Expected (Reference): 1 (24 features). Received: 1 (32 features). Details: 1 count delta: +8.</td>
+        </tr>
+        
+        <tr>
+            <td>#17</td>
+            <td><code>CHK_LINETYPE</code></td>
+            <td><span class="badge badge-warning">WARNING</span></td>
+            <td>parcel</td>
+            <td>—</td>
+            <td>—</td>
+            <td>Layer &#x27;parcel&#x27; Linetype difference. Expected (Reference): Continuous (24 features). Received: Continuous (32 features). Details: Continuous count delta: +8.</td>
+        </tr>
+        
+        <tr>
+            <td>#18</td>
+            <td><code>CHK_LINEWEIGHT</code></td>
+            <td><span class="badge badge-warning">WARNING</span></td>
+            <td>parcel</td>
+            <td>—</td>
+            <td>—</td>
+            <td>Layer &#x27;parcel&#x27; Lineweight difference. Expected (Reference): 25 (24 features). Received: 25 (32 features). Details: 25 count delta: +8.</td>
+        </tr>
+        
+        <tr>
+            <td>#19</td>
+            <td><code>CHK_FEATURE_COUNT</code></td>
+            <td><span class="badge badge-warning">WARNING</span></td>
+            <td>roud</td>
+            <td>—</td>
+            <td>—</td>
+            <td>Feature count difference in &#x27;roud&#x27;: Reference=1, Received=4 (Delta: +3, +300.0%).</td>
+        </tr>
+        
+        <tr>
+            <td>#20</td>
+            <td><code>CHK_UNEXPECTED_FEATURE</code></td>
+            <td><span class="badge badge-danger">ERROR</span></td>
+            <td>roud</td>
+            <td>—</td>
+            <td>—</td>
+            <td>Layer &#x27;roud&#x27; contains 1 unexpected TEXT features not present in Reference profile (Expected: OPEN_POLYLINE).</td>
+        </tr>
+        
+        <tr>
+            <td>#21</td>
+            <td><code>CHK_UNEXPECTED_FEATURE</code></td>
+            <td><span class="badge badge-danger">ERROR</span></td>
+            <td>roud</td>
+            <td>—</td>
+            <td>—</td>
+            <td>Layer &#x27;roud&#x27; contains 1 unexpected CLOSED_POLYLINE features not present in Reference profile (Expected: OPEN_POLYLINE).</td>
+        </tr>
+        
+        <tr>
+            <td>#22</td>
+            <td><code>CHK_UNEXPECTED_FEATURE</code></td>
+            <td><span class="badge badge-danger">ERROR</span></td>
+            <td>roud</td>
+            <td>—</td>
+            <td>—</td>
+            <td>Layer &#x27;roud&#x27; contains 1 unexpected POLYGON features not present in Reference profile (Expected: OPEN_POLYLINE).</td>
+        </tr>
+        
+        <tr>
+            <td>#23</td>
+            <td><code>CHK_COLOR</code></td>
+            <td><span class="badge badge-warning">WARNING</span></td>
+            <td>roud</td>
+            <td>—</td>
+            <td>—</td>
+            <td>Layer &#x27;roud&#x27; Color difference. Expected (Reference): 54 (1 features). Received: 54 (4 features). Details: 54 count delta: +3.</td>
+        </tr>
+        
+        <tr>
+            <td>#24</td>
+            <td><code>CHK_LINETYPE</code></td>
+            <td><span class="badge badge-warning">WARNING</span></td>
+            <td>roud</td>
+            <td>—</td>
+            <td>—</td>
+            <td>Layer &#x27;roud&#x27; Linetype difference. Expected (Reference): Continuous (1 features). Received: Continuous (4 features). Details: Continuous count delta: +3.</td>
+        </tr>
+        
+        <tr>
+            <td>#25</td>
+            <td><code>CHK_LINEWEIGHT</code></td>
+            <td><span class="badge badge-warning">WARNING</span></td>
+            <td>roud</td>
+            <td>—</td>
+            <td>—</td>
+            <td>Layer &#x27;roud&#x27; Lineweight difference. Expected (Reference): 25 (1 features). Received: 25 (4 features). Details: 25 count delta: +3.</td>
+        </tr>
+        
+        <tr>
+            <td>#26</td>
+            <td><code>CHK_FEATURE_COUNT</code></td>
+            <td><span class="badge badge-warning">WARNING</span></td>
+            <td>text</td>
+            <td>—</td>
+            <td>—</td>
+            <td>Feature count difference in &#x27;text&#x27;: Reference=12, Received=13 (Delta: +1, +8.3%).</td>
+        </tr>
+        
+        <tr>
+            <td>#27</td>
+            <td><code>CHK_COLOR</code></td>
+            <td><span class="badge badge-warning">WARNING</span></td>
+            <td>text</td>
+            <td>—</td>
+            <td>—</td>
+            <td>Layer &#x27;text&#x27; Color difference. Expected (Reference): 160 (12 features). Received: 160 (13 features). Details: 160 count delta: +1.</td>
+        </tr>
+        
+        <tr>
+            <td>#28</td>
+            <td><code>CHK_LINETYPE</code></td>
+            <td><span class="badge badge-warning">WARNING</span></td>
+            <td>text</td>
+            <td>—</td>
+            <td>—</td>
+            <td>Layer &#x27;text&#x27; Linetype difference. Expected (Reference): Continuous (12 features). Received: Continuous (13 features). Details: Continuous count delta: +1.</td>
+        </tr>
+        
+        <tr>
+            <td>#29</td>
+            <td><code>CHK_LINEWEIGHT</code></td>
+            <td><span class="badge badge-warning">WARNING</span></td>
+            <td>text</td>
+            <td>—</td>
+            <td>—</td>
+            <td>Layer &#x27;text&#x27; Lineweight difference. Expected (Reference): 25 (12 features). Received: 25 (13 features). Details: 25 count delta: +1.</td>
+        </tr>
+        
+        <tr>
+            <td>#30</td>
+            <td><code>CHK_JUNCTION</code></td>
+            <td><span class="badge badge-danger">ERROR</span></td>
+            <td>parcel</td>
+            <td>24</td>
+            <td>(41.23, 96.94)</td>
+            <td>Feature 24 vertex 0 touches Feature 33 edge 0 without matching node (Distance: 0.00 mm &lt;= 1.0 cm).</td>
+        </tr>
+        
+        <tr>
+            <td>#31</td>
+            <td><code>CHK_JUNCTION</code></td>
+            <td><span class="badge badge-danger">ERROR</span></td>
+            <td>parcel</td>
+            <td>24</td>
+            <td>(24.85, 96.94)</td>
+            <td>Feature 24 vertex 1 touches Feature 33 edge 2 without matching node (Distance: 0.00 mm &lt;= 1.0 cm).</td>
+        </tr>
+        
+        <tr>
+            <td>#32</td>
+            <td><code>CHK_JUNCTION</code></td>
+            <td><span class="badge badge-danger">ERROR</span></td>
+            <td>parcel</td>
+            <td>2</td>
+            <td>(67.61, 141.76)</td>
+            <td>Feature 2 vertex 2 touches Feature 17 edge 0 without matching node (Distance: 0.00 mm &lt;= 1.0 cm).</td>
+        </tr>
+        
+        <tr>
+            <td>#33</td>
+            <td><code>CHK_JUNCTION</code></td>
+            <td><span class="badge badge-danger">ERROR</span></td>
+            <td>parcel</td>
+            <td>2</td>
+            <td>(51.23, 141.76)</td>
+            <td>Feature 2 vertex 3 touches Feature 19 edge 0 without matching node (Distance: 0.00 mm &lt;= 1.0 cm).</td>
+        </tr>
+        
+        <tr>
+            <td>#34</td>
+            <td><code>CHK_JUNCTION</code></td>
+            <td><span class="badge badge-danger">ERROR</span></td>
+            <td>parcel</td>
+            <td>1</td>
+            <td>(67.61, 141.76)</td>
+            <td>Feature 1 vertex 2 touches Feature 17 edge 0 without matching node (Distance: 0.00 mm &lt;= 1.0 cm).</td>
+        </tr>
+        
+        <tr>
+            <td>#35</td>
+            <td><code>CHK_JUNCTION</code></td>
+            <td><span class="badge badge-danger">ERROR</span></td>
+            <td>parcel</td>
+            <td>1</td>
+            <td>(51.23, 141.76)</td>
+            <td>Feature 1 vertex 3 touches Feature 19 edge 0 without matching node (Distance: 0.00 mm &lt;= 1.0 cm).</td>
+        </tr>
+        
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function filterLayers(status, btn) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const rows = document.querySelectorAll('#layerTable tbody tr');
+            rows.forEach(r => {
+                if (status === 'all') {
+                    r.style.display = '';
+                } else {
+                    const s = r.getAttribute('data-status');
+                    r.style.display = (s === status) ? '' : 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

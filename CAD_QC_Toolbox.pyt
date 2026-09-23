@@ -32,7 +32,11 @@ from helpers.reporting import (
     create_html_report,
     create_text_report,
 )
-from helpers.issue_writer import write_issues_to_feature_class
+from helpers.issue_writer import (
+    write_issues_to_feature_class,
+    export_qc_errors_to_geodatabase_dataset,
+    get_default_geodatabase,
+)
 from helpers.utilities import (
     auto_detect_layer_field,
     get_dataset_spatial_reference,
@@ -437,6 +441,19 @@ class CADReferenceComparisonQCTool(object):
             )
             arcpy.AddMessage(f"[Issues] Issue Feature Class created: {out_issue_fc}")
 
+        if qc_result.geometry_qc_run and qc_result.issues:
+            sr = get_dataset_spatial_reference(rec_source) or get_dataset_spatial_reference(ref_source)
+            arcpy.AddMessage("[GDB Export] Exporting detected issues into Default Geodatabase Dataset 'CAD_QC_Errors'...")
+            export_qc_errors_to_geodatabase_dataset(
+                issues=qc_result.issues,
+                gdb_path=None,
+                dataset_name="CAD_QC_Errors",
+                spatial_reference=sr,
+                create_all_ten=True,
+                add_to_map=True,
+                progress_callback=progress_notify,
+            )
+
         # Final Summary Notification
         n_errors = len(qc_result.issues_by_severity(Severity.ERROR))
         n_warnings = len(qc_result.issues_by_severity(Severity.WARNING))
@@ -651,11 +668,55 @@ class GeometryQCTool(object):
         )
         p_out_fc.category = "Report Outputs"
 
+        # 26: Export 10 Error Types to Default GDB Dataset
+        p_export_gdb = arcpy.Parameter(
+            displayName="Export 10 Error Types to Default GDB Dataset",
+            name="export_to_gdb",
+            datatype="GPBoolean",
+            parameterType="Optional",
+            direction="Input",
+        )
+        p_export_gdb.value = True
+        p_export_gdb.category = "Geodatabase Dataset Export"
+
+        # 27: Target Geodatabase
+        p_target_gdb = arcpy.Parameter(
+            displayName="Target Geodatabase (Leave empty for Default.gdb)",
+            name="target_gdb",
+            datatype="DEWorkspace",
+            parameterType="Optional",
+            direction="Input",
+        )
+        p_target_gdb.category = "Geodatabase Dataset Export"
+
+        # 28: Feature Dataset Name
+        p_ds_name = arcpy.Parameter(
+            displayName="Feature Dataset Name",
+            name="dataset_name",
+            datatype="GPString",
+            parameterType="Optional",
+            direction="Input",
+        )
+        p_ds_name.value = "CAD_Geometry_QC_Errors"
+        p_ds_name.category = "Geodatabase Dataset Export"
+
+        # 29: Add Error Layers to Map
+        p_add_map = arcpy.Parameter(
+            displayName="Add Error Layers to Active Pro Map",
+            name="add_to_map",
+            datatype="GPBoolean",
+            parameterType="Optional",
+            direction="Input",
+        )
+        p_add_map.value = True
+        p_add_map.category = "Geodatabase Dataset Export"
+
         return [
             p_in, p_layer_field, p_target_layer, p_layer_name,
             p_short, p_angle, p_snap, p_red, p_junc, p_ov, p_gap, p_out,
             *toggles,
-            p_excel, p_html, p_txt, p_out_fc
+            p_excel, p_html, p_txt, p_out_fc,
+            p_export_gdb, p_target_gdb, p_ds_name, p_add_map
         ]
 
     def updateParameters(self, parameters):
@@ -710,6 +771,10 @@ class GeometryQCTool(object):
         gen_html = bool(parameters[23].value)
         gen_txt = bool(parameters[24].value)
         out_issue_fc = parameters[25].valueAsText
+        export_to_gdb = bool(parameters[26].value) if len(parameters) > 26 and parameters[26].value is not None else True
+        target_gdb = parameters[27].valueAsText if len(parameters) > 27 and parameters[27].valueAsText else None
+        dataset_name = parameters[28].valueAsText if len(parameters) > 28 and parameters[28].valueAsText else "CAD_Geometry_QC_Errors"
+        add_to_map = bool(parameters[29].value) if len(parameters) > 29 and parameters[29].value is not None else True
 
         config = GeometryQCConfig(
             check_invalid=chk_inv,
@@ -861,6 +926,25 @@ class GeometryQCTool(object):
                 progress_callback=progress_notify,
             )
             arcpy.AddMessage(f"[Issues] Issue Feature Class created: {out_issue_fc}")
+
+        if export_to_gdb:
+            final_sr = sr or get_dataset_spatial_reference(in_fc)
+            arcpy.AddMessage("=" * 60)
+            arcpy.AddMessage("Exporting 10 QC Error Types into Geodatabase Feature Dataset...")
+            resolved_gdb = target_gdb or get_default_geodatabase()
+            arcpy.AddMessage(f"[GDB Export] Geodatabase: {resolved_gdb}")
+            arcpy.AddMessage(f"[GDB Export] Feature Dataset: {dataset_name}")
+            gdb_results = export_qc_errors_to_geodatabase_dataset(
+                issues=all_issues,
+                gdb_path=target_gdb,
+                dataset_name=dataset_name,
+                spatial_reference=final_sr,
+                create_all_ten=True,
+                add_to_map=add_to_map,
+                progress_callback=progress_notify,
+            )
+            arcpy.AddMessage(f"[GDB Export] Successfully created {len(gdb_results)} feature classes inside dataset '{dataset_name}'.")
+            arcpy.AddMessage("=" * 60)
 
         total_errors = sum(1 for iss in all_issues if iss.severity == Severity.ERROR)
         total_warnings = sum(1 for iss in all_issues if iss.severity == Severity.WARNING)

@@ -1,6 +1,35 @@
 # =====================================================================
-# Git Ignore for CAD Standards & Layer QC Analyzer (ArcGIS Pro / Python)
+# Git Ignore for CAD Standards & Layer QC Analyzer
 # =====================================================================
+
+# --- Video & Large Media ---
+Video/
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+*.webp
+
+# --- AutoCAD Temporary & Backup Files ---
+*.bak
+*.dwl
+*.dwl2
+*.ac$
+*.sv$
+*.log
+plot.log
+
+# --- ArcGIS & Esri Locks and Geodatabases ---
+*.sr.lock
+*.lock
+*.gdb/
+*.gdb.zip
+scratch/
+scratch.gdb/
+Default.gdb/
+*.aprx.bak
+*.nmf
 
 # --- Python & Bytecode ---
 __pycache__/
@@ -35,36 +64,12 @@ env/
 env.bak/
 venv.bak/
 
-# --- AutoCAD Temporary & Lock Files ---
-*.bak
-*.dwl
-*.dwl2
-*.ac$
-*.sv$
-*.log
-plot.log
-
-# --- ArcGIS Pro & Esri Lock Files & Geodatabases ---
-*.sr.lock
-*.lock
-*.gdb/
-*.gdb.zip
+# --- Temporary Planning / Scratch Artifacts ---
+implementation_plan.md
 scratch/
-scratch.gdb/
-Default.gdb/
-*.aprx.bak
-*.nmf
-
-# --- Generated QC Reports & Test Outputs ---
-tests/out/
+New Folder/
+tests/New Folder/
 tests/test_outputs/
-out/
-reports/
-*.xlsx
-# Allow html documentation if any, but ignore generated run reports
-run_report_*.html
-qc_report_*.html
-*.txt.report
 
 # --- Microsoft Office Temporary Files ---
 ~$*.xlsx
