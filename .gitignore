@@ -1,0 +1,94 @@
+# =====================================================================
+# Git Ignore for CAD Standards & Layer QC Analyzer (ArcGIS Pro / Python)
+# =====================================================================
+
+# --- Python & Bytecode ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+
+# --- Virtual Environments ---
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# --- AutoCAD Temporary & Lock Files ---
+*.bak
+*.dwl
+*.dwl2
+*.ac$
+*.sv$
+*.log
+plot.log
+
+# --- ArcGIS Pro & Esri Lock Files & Geodatabases ---
+*.sr.lock
+*.lock
+*.gdb/
+*.gdb.zip
+scratch/
+scratch.gdb/
+Default.gdb/
+*.aprx.bak
+*.nmf
+
+# --- Generated QC Reports & Test Outputs ---
+tests/out/
+tests/test_outputs/
+out/
+reports/
+*.xlsx
+# Allow html documentation if any, but ignore generated run reports
+run_report_*.html
+qc_report_*.html
+*.txt.report
+
+# --- Microsoft Office Temporary Files ---
+~$*.xlsx
+~$*.docx
+~$*.pptx
+
+# --- IDEs & Code Editors ---
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*~
+
+# --- Operating System Files ---
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+[Dd]esktop.ini
+.DS_Store
+.Spotlight-V100
+.Trashes
