@@ -5,12 +5,14 @@
 # --- Reports & Output Deliverables ---
 
 tests/out/
+out/
 *.xlsx
 *.html
 *.txt
 CAD_QC_Results.gdb/
 CAD_QC_Default.gdb/
 *.zip
+
 
 # --- Video & Large Media ---
 Video/
@@ -107,3 +109,13 @@ ehthumbs_vista.db
 .DS_Store
 .Spotlight-V100
 .Trashes
+
+# =====================================================================
+# Whitelist Example Deliverables & Results
+# =====================================================================
+!example/
+!example/**
+!example/**/*.gdb/
+!example/**/*.gdb/**
+example/**/*.lock
+example/**/*.sr.lock

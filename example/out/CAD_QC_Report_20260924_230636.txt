@@ -1,0 +1,97 @@
+CAD REFERENCE-BASED QC & GEOMETRY QUALITY REPORT
+============================================================
+
+REFERENCE: D:\Learning\CAD Standards & Layer QC Analyzer\orig.dwg
+RECEIVED:  D:\Learning\CAD Standards & Layer QC Analyzer\edited.dwg
+DATE:      2026-09-24 23:06:35
+
+Reference Layers: 3
+Received Layers:  3
+Missing Layers:   0
+Extra Layers:     0
+
+Geometry Differences:     1
+Unexpected Feature Types: 4
+Color Differences:        0
+Lineweight Differences:   0
+Linetype Differences:     0
+Closure Issues:           13
+Feature Count Differences:0
+Reference Comparison Issues: 18
+  Geometry Differences:     1
+  Unexpected Feature Types: 4
+  Color Differences:        0
+  Lineweight Differences:   0
+  Linetype Differences:     0
+  Closure Issues:           13
+  Feature Count Differences:0
+
+Geometry QC Issues:         38
+Total QC Issues:            56
+
+------------------------------------------------------------
+
+[ERROR] parcel
+  Received Count: 32
+  Expected: CLOSED_POLYLINE | Received: MIXED
+  • 12 unexpected OPEN_POLYLINE
+  • Geometry type mismatch: expected Polygon, got Polyline
+  • 12 open polylines where closed geometry was expected
+
+[ERROR] roud
+  Received Count: 4
+  Expected: OPEN_POLYLINE | Received: MIXED
+  • 1 unexpected TEXT
+  • 1 unexpected CLOSED_POLYLINE
+  • 1 unexpected POLYGON
+
+============================================================
+GEOMETRY-AWARE QC PROFILE & ISSUES BREAKDOWN
+------------------------------------------------------------
+Layer                    Geometry     QC Profile       Issues
+------------------------------------------------------------
+parcel                   Polygon      Polygon QC           34
+roud                     Polyline     Line QC               4
+------------------------------------------------------------
+
+[ERROR] CAD Layer: parcel (32 features) | Type: Polygon | Profile: Polygon QC
+  Total Issues: 34 (30 Errors, 4 Warnings)
+    • CHK_INVALID_GEOM: 12
+    • CHK_OVERLAP: 1
+    • CHK_REDUNDANT: 4
+    • CHK_JUNCTION: 17
+
+[ERROR] CAD Layer: roud (3 features) | Type: Polyline | Profile: Line QC
+  Total Issues: 4 (3 Errors, 1 Warnings)
+    • CHK_LINE_DUPLICATE: 1
+    • CHK_LINE_DANGLE: 1
+    • CHK_LINE_JUNCTION: 2
+
+============================================================
+GEOMETRY & TOPOLOGY QC SUMMARY (10 CHECKS)
+------------------------------------------------------------
+  Invalid Geometry        :   12 issues [ERROR]
+  Overlap                 :    1 issues [ERROR]
+  Duplicate Geometry      :    0 issues [PASS]
+  Enclosed Gap            :    0 issues [PASS]
+  Multipart Feature       :    0 issues [PASS]
+  Short Segment           :    0 issues [PASS]
+  Angle Issue             :    0 issues [PASS]
+  Snap Issue              :    0 issues [PASS]
+  Redundant Vertex        :    4 issues [WARNING]
+  Missing Junction        :   17 issues [ERROR]
+  L01 — Invalid Line Geometry:    0 issues [PASS]
+  L02 — Duplicate Line    :    1 issues [ERROR]
+  L03 — Overlapping Lines :    0 issues [PASS]
+  L04 — Self-Intersecting Line:    0 issues [PASS]
+  L05 — Dangle            :    1 issues [WARNING]
+  L06 — Disconnected Line :    0 issues [PASS]
+  L07 — Short Line / Short Segment:    0 issues [PASS]
+  L08 — Sharp Angle / Cutback:    0 issues [PASS]
+  L09 — Redundant Vertex  :    0 issues [PASS]
+  L10 — Snap / Near-Coincident Issue:    0 issues [PASS]
+  L11 — Missing Junction  :    2 issues [ERROR]
+  L12 — Open / Closed Line Behavior:    0 issues [PASS]
+
+============================================================
+END OF REPORT
