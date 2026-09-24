@@ -7,6 +7,7 @@ Compares geometry distributions and flags unexpected feature types within layers
 from typing import Dict, List, Tuple
 from ..models.qc_issue import QCIssue, Severity, CheckID
 from ..models.reference_profile import LayerProfile
+from ..geometry.geometry_types import GeometryType, normalize_geometry_type
 
 
 def compare_geometry_composition(
@@ -54,8 +55,39 @@ def compare_geometry_composition(
             issues.append(issue)
             current_id += 1
 
-    # Check dominant geometry mismatch
-    if ref_layer.dominant_geometry != "MIXED" and rec_layer.dominant_geometry != "MIXED":
+    # 1. Canonical Geometry Type Mismatch Check (Section 3 of Prompt)
+    ref_geom_type = getattr(ref_layer, "geometry_type", None) or normalize_geometry_type(ref_layer.dominant_geometry)
+    rec_geom_type = getattr(rec_layer, "geometry_type", None) or normalize_geometry_type(rec_layer.dominant_geometry)
+
+    if (
+        ref_geom_type not in (GeometryType.UNKNOWN, "MIXED", None)
+        and rec_geom_type not in (GeometryType.UNKNOWN, "MIXED", None)
+        and ref_geom_type != rec_geom_type
+    ):
+        status = "ERROR"
+        unexpected_summary.append(f"Geometry type mismatch: expected {ref_geom_type}, got {rec_geom_type}")
+        issue = QCIssue(
+            issue_id=current_id,
+            check_id=CheckID.CHK_GEOMETRY_TYPE,
+            issue_type="GEOMETRY_TYPE_MISMATCH",
+            severity=Severity.ERROR,
+            layer_name=layer_name,
+            geometry_type=rec_geom_type,
+            source="Reference Comparison",
+            property_name="GeometryType",
+            expected_value=ref_geom_type,
+            actual_value=rec_geom_type,
+            details=(
+                f"Geometry type mismatch for layer '{layer_name}': "
+                f"Expected '{ref_geom_type}' based on Reference CAD, but Received '{rec_geom_type}'. "
+                f"Source: Reference Comparison."
+            ),
+        )
+        issues.append(issue)
+        current_id += 1
+
+    # 2. Dominant sub-category mismatch within same geometry type (e.g. Open vs Closed polyline)
+    elif ref_layer.dominant_geometry != "MIXED" and rec_layer.dominant_geometry != "MIXED":
         if ref_layer.dominant_geometry != rec_layer.dominant_geometry:
             status = "ERROR"
             issue = QCIssue(
@@ -64,7 +96,8 @@ def compare_geometry_composition(
                 issue_type="DOMINANT_GEOMETRY_MISMATCH",
                 severity=Severity.ERROR,
                 layer_name=layer_name,
-                source="RECEIVED",
+                geometry_type=rec_geom_type,
+                source="Reference Comparison",
                 property_name="DominantGeometry",
                 expected_value=ref_layer.dominant_geometry,
                 actual_value=rec_layer.dominant_geometry,

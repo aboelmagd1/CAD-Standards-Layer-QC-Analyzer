@@ -8,6 +8,7 @@ using arcpy.da.SearchCursor to build layer inventories and property distribution
 from typing import Dict, List, Tuple, Any, Optional, Set
 from ..models.reference_profile import LayerProfile, ReferenceProfile
 from ..geometry.geometry_classifier import classify_geometry, is_closed_polyline, GeometryCategory
+from ..geometry.geometry_types import GeometryType, normalize_geometry_type
 from .closure_checker import evaluate_polyline_closure
 
 
@@ -168,11 +169,15 @@ def analyze_dataset(
                         result.normalized_map[norm_layer] = raw_layer
 
                     if norm_layer not in layer_profiles:
-                        layer_profiles[norm_layer] = LayerProfile(layer_name=raw_layer)
+                        layer_profiles[norm_layer] = LayerProfile(
+                            layer_name=raw_layer,
+                            normalized_layer_name=norm_layer,
+                        )
                         sampled_shapes[norm_layer] = {}
 
                     lp = layer_profiles[norm_layer]
                     lp.feature_count += 1
+                    lp.normalized_layer_name = norm_layer
 
                     entity_val = str(row[idx_map["entity"]]) if "entity" in idx_map and row[idx_map["entity"]] is not None else None
 
@@ -187,6 +192,45 @@ def analyze_dataset(
                             lp.open_count += 1
                             if len(sampled_shapes[norm_layer]) < max_stored_geometries_per_layer:
                                 sampled_shapes[norm_layer][oid] = shape
+
+                    # Multipart tracking
+                    is_mp = False
+                    if hasattr(shape, "isMultipart") and shape.isMultipart:
+                        is_mp = True
+                    elif hasattr(shape, "partCount") and shape.partCount > 1:
+                        is_mp = True
+                    mp_key = "Multipart" if is_mp else "Singlepart"
+                    lp.multipart_distribution[mp_key] = lp.multipart_distribution.get(mp_key, 0) + 1
+
+                    # Vertex count tracking
+                    v_cnt = 0
+                    if hasattr(shape, "pointCount") and shape.pointCount is not None:
+                        v_cnt = shape.pointCount
+                    elif hasattr(shape, "partCount"):
+                        for pi in range(shape.partCount):
+                            p = shape.getPart(pi)
+                            if p:
+                                v_cnt += len(p)
+                    elif isinstance(shape, (list, tuple)):
+                        v_cnt = len(shape)
+                    if v_cnt > 0:
+                        vc_stat = lp.vertex_count_distribution
+                        if not vc_stat:
+                            vc_stat["min"] = v_cnt
+                            vc_stat["max"] = v_cnt
+                            vc_stat["total"] = v_cnt
+                            vc_stat["count"] = 1
+                        else:
+                            vc_stat["min"] = min(vc_stat["min"], v_cnt)
+                            vc_stat["max"] = max(vc_stat["max"], v_cnt)
+                            vc_stat["total"] += v_cnt
+                            vc_stat["count"] += 1
+
+                    # Z / M availability
+                    if not lp.zm_availability and shape is not None:
+                        has_z = bool(getattr(shape, "hasZ", False))
+                        has_m = bool(getattr(shape, "hasM", False))
+                        lp.zm_availability = {"has_z": has_z, "has_m": has_m}
 
                     if "color" in idx_map and row[idx_map["color"]] is not None:
                         c_val = str(row[idx_map["color"]]).strip()
@@ -205,7 +249,7 @@ def analyze_dataset(
         except Exception:
             continue
 
-    # Post-process distributions to determine Dominant Geometry and Mixed profile
+    # Post-process distributions to determine Dominant Geometry, Canonical Geometry Type, and Mixed profile
     for norm_name, lp in layer_profiles.items():
         total_feats = lp.feature_count
         if total_feats > 0:
@@ -222,6 +266,12 @@ def analyze_dataset(
                 lp.dominant_geometry = "MIXED"
                 lp.is_mixed_geometry = True
 
+            # Open/Closed distribution
+            lp.open_closed_distribution = {
+                "Open": lp.open_count,
+                "Closed": lp.closed_count,
+            }
+
             # Closure requirement derivation
             total_polylines = lp.closed_count + lp.open_count
             if total_polylines > 0:
@@ -232,6 +282,39 @@ def analyze_dataset(
             elif lp.dominant_geometry == GeometryCategory.POLYGON:
                 lp.closure_required = True
                 lp.closure_percentage = 1.0
+
+            # Derive canonical geometry_type
+            poly_count = lp.geometry_distribution.get(GeometryCategory.POLYGON, 0)
+            line_count = (
+                lp.geometry_distribution.get(GeometryCategory.OPEN_POLYLINE, 0)
+                + lp.geometry_distribution.get(GeometryCategory.CLOSED_POLYLINE, 0)
+            )
+            point_count = lp.geometry_distribution.get(GeometryCategory.POINT, 0)
+            mpoint_count = lp.geometry_distribution.get(GeometryCategory.MULTIPOINT, 0)
+            text_count = (
+                lp.geometry_distribution.get(GeometryCategory.TEXT, 0)
+                + lp.geometry_distribution.get(GeometryCategory.ANNOTATION, 0)
+            )
+
+            geom_totals = [
+                (GeometryType.POLYGON, poly_count),
+                (GeometryType.POLYLINE, line_count),
+                (GeometryType.POINT, point_count),
+                (GeometryType.MULTIPOINT, mpoint_count),
+                (GeometryType.ANNOTATION, text_count),
+            ]
+            sorted_totals = sorted(geom_totals, key=lambda x: x[1], reverse=True)
+            top_type, top_cnt = sorted_totals[0]
+            if top_cnt > 0:
+                lp.geometry_type = top_type
+            else:
+                lp.geometry_type = GeometryType.UNKNOWN
+
+            # Vertex count average
+            if lp.vertex_count_distribution and lp.vertex_count_distribution.get("count", 0) > 0:
+                lp.vertex_count_distribution["avg"] = round(
+                    lp.vertex_count_distribution["total"] / lp.vertex_count_distribution["count"], 1
+                )
 
         lp.available_properties = list(result.available_cad_fields)
 

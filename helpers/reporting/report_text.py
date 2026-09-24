@@ -44,9 +44,22 @@ def create_text_report(qc_result: QCResult, output_path: str) -> str:
     lines.append(f"Linetype Differences:     {lt_diffs}")
     lines.append(f"Closure Issues:           {clos_diffs}")
     lines.append(f"Feature Count Differences:{cnt_diffs}")
+    ref_cmp_issues = qc_result.reference_comparison_issues()
+    geom_qc_issues = qc_result.geometry_qc_issues()
+
+    lines.append(f"Reference Comparison Issues: {len(ref_cmp_issues)}")
+    lines.append(f"  Geometry Differences:     {geom_diffs}")
+    lines.append(f"  Unexpected Feature Types: {unexp_types}")
+    lines.append(f"  Color Differences:        {color_diffs}")
+    lines.append(f"  Lineweight Differences:   {lw_diffs}")
+    lines.append(f"  Linetype Differences:     {lt_diffs}")
+    lines.append(f"  Closure Issues:           {clos_diffs}")
+    lines.append(f"  Feature Count Differences:{cnt_diffs}")
     if res_diffs > 0:
-        lines.append(f"Reserved Layer (0) Issues:{res_diffs}")
-    lines.append(f"Total QC Issues:          {len(qc_result.issues)}")
+        lines.append(f"  Reserved Layer (0) Issues:{res_diffs}")
+    lines.append("")
+    lines.append(f"Geometry QC Issues:         {len(geom_qc_issues)}")
+    lines.append(f"Total QC Issues:            {len(qc_result.issues)}")
     lines.append("")
     lines.append("-" * 60)
     lines.append("")
@@ -55,23 +68,36 @@ def create_text_report(qc_result: QCResult, output_path: str) -> str:
     for l_name, ls in sorted(qc_result.layer_statuses.items()):
         if ls.status != LayerStatus.PASS:
             lines.append(f"[{ls.status}] {ls.layer_name}")
-            lines.append(f"  Reference Count: {ls.ref_count:,} | Received Count: {ls.rec_count:,}")
+            lines.append(f"  Received Count: {ls.rec_count:,}")
             lines.append(f"  Expected: {ls.expected_geom} | Received: {ls.received_geom}")
             for r in ls.reasons:
                 lines.append(f"  • {r}")
             lines.append("")
 
-    # Geometry QC findings (if any)
+    # Geometry-Aware QC Profile findings (if any)
     if qc_result.layer_geometry_qc_summaries:
         lines.append("=" * 60)
-        lines.append("GEOMETRY QC ISSUES BREAKDOWN BY CAD LAYER")
+        lines.append("GEOMETRY-AWARE QC PROFILE & ISSUES BREAKDOWN")
         lines.append("-" * 60)
+        header_fmt = "{:<24} {:<12} {:<14} {:>8}"
+        lines.append(header_fmt.format("Layer", "Geometry", "QC Profile", "Issues"))
+        lines.append("-" * 60)
+        for lname, linfo in sorted(qc_result.layer_geometry_qc_summaries.items()):
+            g_type = str(linfo.get("geometry_type") or linfo.get("expected_geom", "Unknown"))
+            qc_prof = str(linfo.get("qc_profile") or "Generic QC")
+            tot = linfo.get("total_issues", 0)
+            lines.append(header_fmt.format(lname[:23], g_type[:11], qc_prof[:13], tot))
+        lines.append("-" * 60)
+        lines.append("")
+
         for lname, linfo in sorted(qc_result.layer_geometry_qc_summaries.items()):
             errs = linfo.get("errors", 0)
             warns = linfo.get("warnings", 0)
             tot = linfo.get("total_issues", errs + warns)
             st = "ERROR" if errs > 0 else ("WARNING" if warns > 0 else "PASS")
-            lines.append(f"[{st}] CAD Layer: {lname} ({linfo.get('feature_count', '—')} features)")
+            g_type = linfo.get("geometry_type", "Unknown")
+            qc_prof = linfo.get("qc_profile", "Generic QC")
+            lines.append(f"[{st}] CAD Layer: {lname} ({linfo.get('feature_count', '—')} features) | Type: {g_type} | Profile: {qc_prof}")
             lines.append(f"  Total Issues: {tot} ({errs} Errors, {warns} Warnings)")
             chks = linfo.get("checks", {})
             for chk_name, cnt in chks.items():

@@ -90,6 +90,8 @@ def create_excel_report(qc_result: QCResult, output_path: str) -> str:
         ("Passed Layers", qc_result.passed_layers_count()),
         ("Layers with Errors", qc_result.error_layers_count()),
         ("Layers with Warnings", qc_result.warning_layers_count()),
+        ("Reference Comparison Issues", len(qc_result.reference_comparison_issues())),
+        ("Geometry QC Issues", len(qc_result.geometry_qc_issues())),
         ("Total QC Issues", len(qc_result.issues)),
         ("Total Errors", len(qc_result.issues_by_severity(Severity.ERROR))),
         ("Total Warnings", len(qc_result.issues_by_severity(Severity.WARNING))),
@@ -166,7 +168,6 @@ def create_excel_report(qc_result: QCResult, output_path: str) -> str:
 
     ov_headers = [
         "Layer Name",
-        "Reference Count",
         "Received Count",
         "Expected Geometry",
         "Received Geometry",
@@ -186,7 +187,6 @@ def create_excel_report(qc_result: QCResult, output_path: str) -> str:
     for l_name, l_stat in sorted(qc_result.layer_statuses.items()):
         row_vals = [
             l_stat.layer_name,
-            l_stat.ref_count,
             l_stat.rec_count,
             l_stat.expected_geom,
             l_stat.received_geom,
@@ -204,7 +204,7 @@ def create_excel_report(qc_result: QCResult, output_path: str) -> str:
             cell.border = thin_border
 
             # Highlight status column
-            if c_idx == 11:
+            if c_idx == 10:
                 if val == LayerStatus.PASS:
                     cell.fill = fill_pass
                 elif val in (LayerStatus.ERROR, LayerStatus.MISSING):
@@ -226,7 +226,7 @@ def create_excel_report(qc_result: QCResult, output_path: str) -> str:
     ws_diff["A1"] = "LAYER DIFFERENCES (Missing & Extra Layers)"
     ws_diff["A1"].font = title_font
 
-    diff_headers = ["Layer Name", "Classification", "Reference Count", "Received Count", "Severity", "Details"]
+    diff_headers = ["Layer Name", "Classification", "Received Count", "Severity", "Details"]
     for c_idx, h in enumerate(diff_headers, 1):
         ws_diff.cell(row=3, column=c_idx, value=h)
     style_header_row(ws_diff, 3, len(diff_headers))
@@ -235,8 +235,7 @@ def create_excel_report(qc_result: QCResult, output_path: str) -> str:
     for m in qc_result.missing_layers:
         lp = qc_result.reference_profile.layers.get(m) if qc_result.reference_profile else None
         l_name = lp.layer_name if lp else m
-        f_cnt = lp.feature_count if lp else 0
-        vals = [l_name, "MISSING LAYER", f_cnt, 0, "ERROR", "Layer exists in Reference but missing from Received"]
+        vals = [l_name, "MISSING LAYER", 0, "ERROR", "Layer exists in Reference but missing from Received"]
         for c_idx, val in enumerate(vals, 1):
             cell = ws_diff.cell(row=r, column=c_idx, value=val)
             cell.font = normal_font
@@ -249,7 +248,7 @@ def create_excel_report(qc_result: QCResult, output_path: str) -> str:
         lp = qc_result.received_profile.layers.get(e) if qc_result.received_profile else None
         l_name = lp.layer_name if lp else e
         f_cnt = lp.feature_count if lp else 0
-        vals = [l_name, "EXTRA LAYER", 0, f_cnt, "INFO", "Layer exists in Received but not in Reference"]
+        vals = [l_name, "EXTRA LAYER", f_cnt, "INFO", "Layer exists in Received but not in Reference"]
         for c_idx, val in enumerate(vals, 1):
             cell = ws_diff.cell(row=r, column=c_idx, value=val)
             cell.font = normal_font
@@ -269,7 +268,7 @@ def create_excel_report(qc_result: QCResult, output_path: str) -> str:
     ws_geom["A1"] = "GEOMETRY DISTRIBUTION COMPARISON"
     ws_geom["A1"].font = title_font
 
-    geom_headers = ["Layer Name", "Geometry Category", "Reference Count", "Received Count", "Delta", "Status"]
+    geom_headers = ["Layer Name", "Geometry Category", "Received Count", "Status"]
     for c_idx, h in enumerate(geom_headers, 1):
         ws_geom.cell(row=3, column=c_idx, value=h)
     style_header_row(ws_geom, 3, len(geom_headers))
@@ -285,24 +284,21 @@ def create_excel_report(qc_result: QCResult, output_path: str) -> str:
             for cat in all_cats:
                 c_ref = lp_ref.geometry_distribution.get(cat, 0)
                 c_rec = lp_rec.geometry_distribution.get(cat, 0)
-                delta = c_rec - c_ref
                 status = "MATCH"
                 if c_ref == 0 and c_rec > 0:
                     status = "UNEXPECTED"
                 elif c_ref > 0 and c_rec == 0:
                     status = "MISSING TYPE"
-                elif delta != 0:
-                    status = "COUNT DELTA"
 
-                vals = [lp_ref.layer_name, cat, c_ref, c_rec, delta, status]
+                vals = [lp_ref.layer_name, cat, c_rec, status]
                 for c_idx, val in enumerate(vals, 1):
                     cell = ws_geom.cell(row=r, column=c_idx, value=val)
                     cell.font = normal_font
                     cell.border = thin_border
-                    if c_idx == 6:
+                    if c_idx == 4:
                         if status == "UNEXPECTED":
                             cell.fill = fill_error
-                        elif status == "COUNT DELTA":
+                        elif status == "MISSING TYPE":
                             cell.fill = fill_warning
                         elif status == "MATCH":
                             cell.fill = fill_pass
@@ -404,7 +400,7 @@ def create_excel_report(qc_result: QCResult, output_path: str) -> str:
     ws_cnt["A1"] = "FEATURE COUNT DIFFERENCES"
     ws_cnt["A1"].font = title_font
 
-    cnt_headers = ["Layer Name", "Reference Count", "Received Count", "Delta", "% Difference", "Details"]
+    cnt_headers = ["Layer Name", "Received Count", "Delta", "% Difference", "Details"]
     for c_idx, h in enumerate(cnt_headers, 1):
         ws_cnt.cell(row=3, column=c_idx, value=h)
     style_header_row(ws_cnt, 3, len(cnt_headers))
@@ -416,12 +412,12 @@ def create_excel_report(qc_result: QCResult, output_path: str) -> str:
         rec_c = int(ci.actual_value or 0)
         delta = rec_c - ref_c
         pct = (delta / ref_c * 100.0) if ref_c > 0 else 0.0
-        vals = [ci.layer_name, ref_c, rec_c, delta, f"{pct:+.1f}%", ci.details]
+        vals = [ci.layer_name, rec_c, delta, f"{pct:+.1f}%", ci.details]
         for c_idx, val in enumerate(vals, 1):
             cell = ws_cnt.cell(row=r, column=c_idx, value=val)
             cell.font = normal_font
             cell.border = thin_border
-            if c_idx == 4:
+            if c_idx == 3:
                 cell.fill = fill_warning
         r += 1
 
@@ -456,9 +452,9 @@ def create_excel_report(qc_result: QCResult, output_path: str) -> str:
     # Per-Layer Geometry QC Breakdown Table
     if qc_result.layer_geometry_qc_summaries:
         r += 2
-        ws_gsum.cell(row=r, column=1, value="GEOMETRY ISSUES BREAKDOWN BY CAD LAYER").font = title_font
+        ws_gsum.cell(row=r, column=1, value="GEOMETRY-AWARE ISSUES BREAKDOWN BY CAD LAYER").font = title_font
         r += 1
-        lsum_headers = ["CAD Layer Name", "Features Analyzed", "Total Issues", "Errors", "Warnings", "Layer Status"]
+        lsum_headers = ["CAD Layer Name", "Geometry", "QC Profile", "Applicable Checks", "Features Analyzed", "Total Issues", "Errors", "Warnings", "Layer Status"]
         for c_idx, h in enumerate(lsum_headers, 1):
             ws_gsum.cell(row=r, column=c_idx, value=h)
         style_header_row(ws_gsum, r, len(lsum_headers))
@@ -469,12 +465,17 @@ def create_excel_report(qc_result: QCResult, output_path: str) -> str:
             warns = linfo.get("warnings", 0)
             tot = linfo.get("total_issues", errs + warns)
             st = "ERROR" if errs > 0 else ("WARNING" if warns > 0 else "PASS")
-            lvals = [lname, linfo.get("feature_count", "—"), tot, errs, warns, st]
+            g_type = linfo.get("geometry_type") or linfo.get("expected_geom", "Unknown")
+            qc_prof = linfo.get("qc_profile") or "Generic QC"
+            app_checks = linfo.get("applicable_checks", [])
+            app_str = f"{len(app_checks)} checks" if app_checks else "Default"
+
+            lvals = [lname, g_type, qc_prof, app_str, linfo.get("feature_count", "—"), tot, errs, warns, st]
             for c_idx, val in enumerate(lvals, 1):
                 cell = ws_gsum.cell(row=r, column=c_idx, value=val)
                 cell.font = normal_font
                 cell.border = thin_border
-                if c_idx == 6:
+                if c_idx == 9:
                     cell.fill = fill_pass if st == "PASS" else (fill_error if st == "ERROR" else fill_warning)
             r += 1
 
@@ -489,21 +490,9 @@ def create_excel_report(qc_result: QCResult, output_path: str) -> str:
     ws_giss["A1"] = "GEOMETRY & TOPOLOGY QC ISSUES"
     ws_giss["A1"].font = title_font
 
-    geom_check_ids = {
-        CheckID.CHK_INVALID_GEOM,
-        CheckID.CHK_OVERLAP,
-        CheckID.CHK_DUPLICATE,
-        CheckID.CHK_GAP,
-        CheckID.CHK_MULTIPART,
-        CheckID.CHK_SHORT_SEG,
-        CheckID.CHK_ANGLE,
-        CheckID.CHK_SNAP,
-        CheckID.CHK_REDUNDANT,
-        CheckID.CHK_JUNCTION,
-    }
-    g_issues = [i for i in qc_result.issues if i.check_id in geom_check_ids]
+    g_issues = qc_result.geometry_qc_issues()
 
-    giss_headers = ["Issue ID", "Check ID", "Issue Type", "Severity", "CAD Layer", "Feature OID", "Related OID", "Measurement", "Unit", "Location (X, Y)", "Details"]
+    giss_headers = ["Issue ID", "Check ID", "Issue Type", "Severity", "CAD Layer", "Geometry Type", "Feature OID", "Related OID", "Measurement", "Unit", "Location (X, Y)", "Details"]
     for c_idx, h in enumerate(giss_headers, 1):
         ws_giss.cell(row=3, column=c_idx, value=h)
     style_header_row(ws_giss, 3, len(giss_headers))
@@ -517,6 +506,7 @@ def create_excel_report(qc_result: QCResult, output_path: str) -> str:
             gi.issue_type,
             gi.severity,
             gi.layer_name or "N/A",
+            gi.geometry_type or "N/A",
             gi.object_id,
             gi.related_object_id,
             gi.measurement,
@@ -543,7 +533,7 @@ def create_excel_report(qc_result: QCResult, output_path: str) -> str:
     ws_all["A1"] = "COMPLETE QC ISSUE REGISTRY"
     ws_all["A1"].font = title_font
 
-    all_headers = ["Issue ID", "Check ID", "Issue Type", "Severity", "Source", "Layer Name", "OID", "Related OID", "Property", "Expected", "Actual", "Measurement", "Unit", "Location", "Details"]
+    all_headers = ["Issue ID", "Check ID", "Issue Type", "Severity", "Source", "Layer Name", "Geometry Type", "OID", "Related OID", "Property", "Expected", "Actual", "Measurement", "Unit", "Location", "Details"]
     for c_idx, h in enumerate(all_headers, 1):
         ws_all.cell(row=3, column=c_idx, value=h)
     style_header_row(ws_all, 3, len(all_headers))
@@ -558,6 +548,7 @@ def create_excel_report(qc_result: QCResult, output_path: str) -> str:
             iss.severity,
             iss.source,
             iss.layer_name,
+            iss.geometry_type or "N/A",
             iss.object_id,
             iss.related_object_id,
             iss.property_name,

@@ -11,6 +11,8 @@ from typing import Dict, List, Optional, Any
 @dataclass
 class LayerProfile:
     layer_name: str
+    normalized_layer_name: str = ""
+    geometry_type: str = "Unknown"  # Polygon, Polyline, Point, Multipoint, Unknown
     feature_count: int = 0
     geometry_distribution: Dict[str, int] = field(default_factory=dict)
     dominant_geometry: Optional[str] = None
@@ -20,6 +22,10 @@ class LayerProfile:
     closed_count: int = 0
     open_count: int = 0
     closure_percentage: float = 0.0
+    open_closed_distribution: Dict[str, int] = field(default_factory=dict)
+    multipart_distribution: Dict[str, int] = field(default_factory=dict)
+    vertex_count_distribution: Dict[str, Any] = field(default_factory=dict)
+    zm_availability: Dict[str, bool] = field(default_factory=dict)
     color_distribution: Dict[str, int] = field(default_factory=dict)
     linetype_distribution: Dict[str, int] = field(default_factory=dict)
     lineweight_distribution: Dict[str, int] = field(default_factory=dict)

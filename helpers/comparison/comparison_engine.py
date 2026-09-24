@@ -20,7 +20,7 @@ class ComparisonConfig:
     def __init__(
         self,
         compare_layer_names: bool = True,
-        compare_feature_counts: bool = True,
+        compare_feature_counts: bool = False,
         compare_geometry_types: bool = True,
         compare_geometry_distribution: bool = True,
         compare_closure: bool = True,

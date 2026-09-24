@@ -50,6 +50,18 @@ def compare_distribution(
     ref_dominant = max(ref_dist.items(), key=lambda x: x[1])[0]
     rec_dominant = max(rec_dist.items(), key=lambda x: x[1])[0]
 
+    # Calculate proportional distributions (ignoring pure count differences)
+    ref_total = sum(ref_dist.values()) or 1
+    rec_total = sum(rec_dist.values()) or 1
+    ref_pcts = {k: v / ref_total for k, v in ref_dist.items()}
+    rec_pcts = {k: v / rec_total for k, v in rec_dist.items()}
+
+    # If the set of values matches and percentage distribution is virtually identical (e.g. 100% Color 1 in both)
+    if set(ref_dist.keys()) == set(rec_dist.keys()):
+        max_pct_diff = max(abs(ref_pcts[k] - rec_pcts[k]) for k in ref_dist.keys())
+        if max_pct_diff < 0.02:  # Less than 2% proportional difference
+            return PropertyStatus.MATCH, issues, f"{property_name} matches standard ({ref_dominant})."
+
     # Check differences
     diff_items = []
     for val, count in rec_dist.items():

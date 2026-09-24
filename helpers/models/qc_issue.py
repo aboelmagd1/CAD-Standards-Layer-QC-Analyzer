@@ -16,7 +16,7 @@ class Severity:
 
 
 class CheckID:
-    # Geometry QC checks
+    # Geometry QC — Polygon checks (P01-P10)
     CHK_INVALID_GEOM = "CHK_INVALID_GEOM"
     CHK_OVERLAP = "CHK_OVERLAP"
     CHK_DUPLICATE = "CHK_DUPLICATE"
@@ -27,6 +27,27 @@ class CheckID:
     CHK_SNAP = "CHK_SNAP"
     CHK_REDUNDANT = "CHK_REDUNDANT"
     CHK_JUNCTION = "CHK_JUNCTION"
+
+    # Geometry QC — Line / Polyline checks (L01-L12)
+    CHK_LINE_INVALID = "CHK_LINE_INVALID"
+    CHK_LINE_DUPLICATE = "CHK_LINE_DUPLICATE"
+    CHK_LINE_OVERLAP = "CHK_LINE_OVERLAP"
+    CHK_LINE_SELF_INTERSECT = "CHK_LINE_SELF_INTERSECT"
+    CHK_LINE_DANGLE = "CHK_LINE_DANGLE"
+    CHK_LINE_DISCONNECTED = "CHK_LINE_DISCONNECTED"
+    CHK_LINE_SHORT_SEG = "CHK_LINE_SHORT_SEG"
+    CHK_LINE_ANGLE = "CHK_LINE_ANGLE"
+    CHK_LINE_REDUNDANT = "CHK_LINE_REDUNDANT"
+    CHK_LINE_SNAP = "CHK_LINE_SNAP"
+    CHK_LINE_JUNCTION = "CHK_LINE_JUNCTION"
+    CHK_LINE_CLOSURE = "CHK_LINE_CLOSURE"
+
+    # Geometry QC — Point checks (PT01-PT05)
+    CHK_PT_INVALID = "CHK_PT_INVALID"
+    CHK_PT_DUPLICATE = "CHK_PT_DUPLICATE"
+    CHK_PT_NEAR_DUPLICATE = "CHK_PT_NEAR_DUPLICATE"
+    CHK_PT_DISTRIBUTION = "CHK_PT_DISTRIBUTION"
+    CHK_PT_CROSS_LAYER = "CHK_PT_CROSS_LAYER"
 
     # CAD Comparison checks
     CHK_MISSING_LAYER = "CHK_MISSING_LAYER"
@@ -51,7 +72,8 @@ class QCIssue:
     issue_type: str
     severity: str
     layer_name: str
-    source: str = "RECEIVED"  # "REFERENCE", "RECEIVED", or "INPUT"
+    geometry_type: Optional[str] = None
+    source: str = "RECEIVED"  # "REFERENCE", "RECEIVED", "INPUT", "Reference Comparison"
     object_id: Optional[Any] = None
     related_object_id: Optional[Any] = None
     property_name: Optional[str] = None
@@ -72,6 +94,7 @@ class QCIssue:
             "severity": self.severity,
             "source": self.source,
             "layer_name": self.layer_name,
+            "geometry_type": self.geometry_type,
             "object_id": self.object_id,
             "related_object_id": self.related_object_id,
             "property_name": self.property_name,

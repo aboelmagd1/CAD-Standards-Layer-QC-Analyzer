@@ -6,7 +6,13 @@ Validates each of the 10 checks using synthetic geometries.
 
 import math
 import unittest
-import arcpy
+try:
+    import arcpy
+    _sr = arcpy.SpatialReference(3857)
+except Exception:
+    import sys
+    from tests import mock_arcpy as arcpy
+    sys.modules["arcpy"] = arcpy
 
 from helpers.models import CheckID, Severity
 from helpers.geometry import (

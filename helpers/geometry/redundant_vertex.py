@@ -35,12 +35,15 @@ def check_redundant_vertices(
             continue
 
         is_ring = (part[0].X == part[-1].X) and (part[0].Y == part[-1].Y)
-        limit = n_pts - 1 if is_ring else n_pts
 
-        for i in range(1, limit):
-            p_prev = part[i - 1]
-            p_curr = part[i]
-            p_next = part[(i + 1) % (n_pts - 1)] if is_ring else part[i + 1]
+        indices = [(i - 1, i, i + 1) for i in range(1, n_pts - 1)]
+        if is_ring and n_pts >= 4:
+            indices.append((n_pts - 2, 0, 1))
+
+        for idx_prev, idx_curr, idx_next in indices:
+            p_prev = part[idx_prev]
+            p_curr = part[idx_curr]
+            p_next = part[idx_next]
 
             if p_prev is None or p_curr is None or p_next is None:
                 continue
@@ -66,7 +69,7 @@ def check_redundant_vertices(
                         unit="degrees",
                         location=(p_curr.X, p_curr.Y),
                         details=(
-                            f"Redundant collinear vertex at index {i} "
+                            f"Redundant collinear vertex at index {idx_curr} "
                             f"(Angle: {angle_deg:.2f}° >= {collinear_threshold_deg:.1f}°, "
                             f"Adjacent segment lengths: {len1:.3f} m, {len2:.3f} m)."
                         ),

@@ -188,8 +188,18 @@ class TestCombinedWorkflow(unittest.TestCase):
         with open(out_file, "r", encoding="utf-8") as f:
             content = f.read()
         self.assertIn("CAD Standards & Geometry Quality Control Report", content)
+        self.assertIn('dir="ltr"', content)
+        self.assertIn("langToggleBtn", content)
         self.assertIn("PARCEL", content)
         self.assertIn("BUILDING", content)
+
+        # Verify Arabic version was also generated alongside it
+        ar_path = os.path.join(self.output_dir, "test_qc_report_ar.html")
+        self.assertTrue(os.path.exists(ar_path))
+        with open(ar_path, "r", encoding="utf-8") as f:
+            ar_content = f.read()
+        self.assertIn('dir="rtl"', ar_content)
+        self.assertIn("تقرير ضبط الجودة ومعايير الكاد", ar_content)
 
     def test_03_text_report_generation(self):
         txt_path = os.path.join(self.output_dir, "test_qc_report.txt")
@@ -201,6 +211,18 @@ class TestCombinedWorkflow(unittest.TestCase):
         self.assertIn("Missing Layers:   1", content)
         self.assertIn("[ERROR] PARCEL", content)
 
+    def test_combined_workflow_dispatches_expected_profile_on_mismatch(self):
+        from helpers.geometry import get_applicable_qc_profile, PolygonQCProfile
+        # Reference layer is Polygon
+        ref_lp = self.ref_profile.layers["PARCEL"]
+        ref_lp.geometry_type = "Polygon"
+
+        # Even if layer has GEOMETRY_TYPE_MISMATCH issue, profile must be PolygonQCProfile
+        qc_profile = get_applicable_qc_profile(ref_lp.geometry_type)
+        self.assertIsInstance(qc_profile, PolygonQCProfile)
+        self.assertEqual(qc_profile.geometry_type, "Polygon")
+
 
 if __name__ == "__main__":
     unittest.main()
+

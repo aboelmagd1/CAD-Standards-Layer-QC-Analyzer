@@ -26,7 +26,7 @@ from .comparison import (
     run_cad_comparison,
 )
 from .reporting import create_excel_report, create_html_report, create_text_report
-from .issue_writer import write_issues_to_feature_class
+from .issue_writer import write_issues_to_feature_class, write_issues_to_table, export_qc_errors_to_geodatabase_dataset
 from .utilities import get_dataset_spatial_reference, compare_spatial_references, auto_detect_layer_field
 from .validation import validate_cad_comparison_parameters, validate_geometry_qc_parameters
 

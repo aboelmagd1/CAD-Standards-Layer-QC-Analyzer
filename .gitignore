@@ -2,6 +2,16 @@
 # Git Ignore for CAD Standards & Layer QC Analyzer
 # =====================================================================
 
+# --- Reports & Output Deliverables ---
+
+tests/out/
+*.xlsx
+*.html
+*.txt
+CAD_QC_Results.gdb/
+CAD_QC_Default.gdb/
+*.zip
+
 # --- Video & Large Media ---
 Video/
 *.mp4
@@ -65,11 +75,11 @@ env.bak/
 venv.bak/
 
 # --- Temporary Planning / Scratch Artifacts ---
-implementation_plan.md
 scratch/
 New Folder/
 tests/New Folder/
 tests/test_outputs/
+.system_generated/
 
 # --- Microsoft Office Temporary Files ---
 ~$*.xlsx

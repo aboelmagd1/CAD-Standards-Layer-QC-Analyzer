@@ -26,7 +26,16 @@ from helpers.comparison import (
 from helpers.geometry import (
     run_geometry_qc,
     GeometryQCConfig,
+    run_line_qc,
+    LineQCConfig,
+    run_point_qc,
+    PointQCConfig,
+    GeometryType,
+    classify_feature_geometry,
+    get_applicable_qc_profile,
+    GetApplicableChecks,
 )
+from helpers.comparison.layer_analyzer import normalize_layer_name
 from helpers.reporting import (
     create_excel_report,
     create_html_report,
@@ -34,8 +43,10 @@ from helpers.reporting import (
 )
 from helpers.issue_writer import (
     write_issues_to_feature_class,
+    write_issues_to_table,
     export_qc_errors_to_geodatabase_dataset,
     get_default_geodatabase,
+    get_or_create_reports_gdb,
 )
 from helpers.utilities import (
     auto_detect_layer_field,
@@ -154,7 +165,7 @@ class CADReferenceComparisonQCTool(object):
             parameterType="Optional",
             direction="Input",
         )
-        p_opt_counts.value = True
+        p_opt_counts.value = False
         p_opt_counts.category = "Comparison Options"
 
         p_opt_geoms = arcpy.Parameter(
@@ -269,11 +280,11 @@ class CADReferenceComparisonQCTool(object):
         p_rep_txt.value = True
         p_rep_txt.category = "Report Outputs"
 
-        # 20: Optional Issue Feature Class
+        # 20: Optional Standalone Issues Table (Pure descriptive, non-spatial)
         p_out_fc = arcpy.Parameter(
-            displayName="Output Issue Feature Class (Optional)",
-            name="output_issue_fc",
-            datatype="DEFeatureClass",
+            displayName="Output Standalone Issues Table (Optional)",
+            name="output_issue_table",
+            datatype="DETable",
             parameterType="Optional",
             direction="Output",
         )
@@ -370,29 +381,64 @@ class CADReferenceComparisonQCTool(object):
             progress_callback=progress_notify,
         )
 
-        # 3. Optional Combined Workflow (Mode C): Run Geometry QC on Received dataset
+        # 3. Optional Combined Workflow (Mode C): Run Geometry-Aware QC on Received dataset
         if run_gqc_on_rec:
-            arcpy.AddMessage("[Combined Workflow] Running per-layer Geometry QC on Received dataset...")
+            arcpy.AddMessage("[Combined Workflow] Running Geometry-Type-Aware QC on Received dataset...")
             f_by_layer, _, _ = extract_features_by_layer(rec_source, rec_layer_field)
             qc_result.geometry_qc_run = True
             combined_summary = {}
 
-            for lname, l_features in f_by_layer.items():
-                arcpy.AddMessage(f"[Combined Workflow] Analyzing CAD Layer: {lname} ({len(l_features)} features)...")
-                g_issues, g_summary = run_geometry_qc(
+            # Identify layers with geometry type mismatches
+            mismatched_layers = {
+                iss.layer_name for iss in qc_result.issues
+                if iss.check_id == CheckID.CHK_GEOMETRY_TYPE and iss.issue_type == "GEOMETRY_TYPE_MISMATCH"
+            }
+
+            for lname, l_features in sorted(f_by_layer.items()):
+                norm_lname = normalize_layer_name(lname, config.case_sensitive, config.trim_whitespace)
+                ref_lp = ref_profile.get_layer(norm_lname) or ref_profile.get_layer(lname)
+
+                # Determine expected geometry profile from Reference CAD (or fallback to feature classification)
+                if ref_lp and ref_lp.geometry_type and ref_lp.geometry_type != GeometryType.UNKNOWN:
+                    target_geom_type = ref_lp.geometry_type
+                else:
+                    sample_shape = next(iter(l_features.values())) if l_features else None
+                    target_geom_type = classify_feature_geometry(sample_shape)
+
+                # If layer had a geometry type mismatch in comparison, notify and still run expected profile
+                is_mismatched = lname in mismatched_layers or (ref_lp and ref_lp.layer_name in mismatched_layers)
+                if is_mismatched:
+                    arcpy.AddWarning(
+                        f"[Combined Workflow] Layer '{lname}': GEOMETRY_TYPE_MISMATCH detected. "
+                        f"Running Geometry QC checks according to expected Reference geometry: '{target_geom_type}'."
+                    )
+
+                qc_profile = get_applicable_qc_profile(target_geom_type)
+                applicable_chks = qc_profile.get_applicable_checks()
+
+                arcpy.AddMessage(
+                    f"[Combined Workflow] Analyzing CAD Layer: {lname} ({len(l_features)} features) | "
+                    f"Target Geometry: {target_geom_type} | Profile: {qc_profile.name}..."
+                )
+
+                g_issues, g_summary = qc_profile.run(
                     features=l_features,
                     layer_name=lname,
                     source="RECEIVED",
                     progress_callback=progress_notify,
+                    issue_id_start=len(qc_result.issues) + 1,
                 )
+
                 for gi in g_issues:
-                    gi.issue_id = len(qc_result.issues) + 1
                     qc_result.add_issue(gi)
 
                 err_count = sum(1 for gi in g_issues if gi.severity == Severity.ERROR)
                 warn_count = sum(1 for gi in g_issues if gi.severity == Severity.WARNING)
                 qc_result.layer_geometry_qc_summaries[lname] = {
                     "feature_count": len(l_features),
+                    "geometry_type": target_geom_type,
+                    "qc_profile": qc_profile.name,
+                    "applicable_checks": applicable_chks,
                     "total_issues": len(g_issues),
                     "errors": err_count,
                     "warnings": warn_count,
@@ -423,36 +469,41 @@ class CADReferenceComparisonQCTool(object):
         if gen_html:
             html_path = os.path.join(out_folder, f"CAD_QC_Report_{timestamp}.html")
             create_html_report(qc_result, html_path)
-            arcpy.AddMessage(f"[Report] HTML dashboard generated: {html_path}")
+            arcpy.AddMessage(f"[Report] HTML dashboard (English): {html_path}")
+            ar_path = os.path.splitext(html_path)[0] + "_ar.html"
+            if os.path.exists(ar_path):
+                arcpy.AddMessage(f"[Report] HTML dashboard (Arabic):  {ar_path}")
 
         if gen_txt:
             txt_path = os.path.join(out_folder, f"CAD_QC_Report_{timestamp}.txt")
             create_text_report(qc_result, txt_path)
             arcpy.AddMessage(f"[Report] Text summary generated: {txt_path}")
 
-        # 5. Output Issue Feature Class
+        # 5. Geodatabase Output: Export all feature classes and tables into GDB in the reports folder
+        qc_gdb = get_or_create_reports_gdb(out_folder, "CAD_QC_Results.gdb")
+        arcpy.AddMessage(f"[GDB Export] Results Geodatabase: {qc_gdb}")
+
         if out_issue_fc:
-            sr = get_dataset_spatial_reference(rec_source) or get_dataset_spatial_reference(ref_source)
-            write_issues_to_feature_class(
+            write_issues_to_table(
                 issues=qc_result.issues,
-                output_feature_class=out_issue_fc,
-                spatial_reference=sr,
+                output_table=out_issue_fc,
                 progress_callback=progress_notify,
             )
-            arcpy.AddMessage(f"[Issues] Issue Feature Class created: {out_issue_fc}")
+            arcpy.AddMessage(f"[Issues] Standalone Issues Table created: {out_issue_fc}")
 
-        if qc_result.geometry_qc_run and qc_result.issues:
+        if qc_result.issues:
             sr = get_dataset_spatial_reference(rec_source) or get_dataset_spatial_reference(ref_source)
-            arcpy.AddMessage("[GDB Export] Exporting detected issues into Default Geodatabase Dataset 'CAD_QC_Errors'...")
+            arcpy.AddMessage("[GDB Export] Exporting geometry-specific error Feature Classes into Geodatabase Dataset 'CAD_Geometry_QC_Errors'...")
             export_qc_errors_to_geodatabase_dataset(
                 issues=qc_result.issues,
-                gdb_path=None,
-                dataset_name="CAD_QC_Errors",
+                gdb_path=qc_gdb,
+                dataset_name="CAD_Geometry_QC_Errors",
                 spatial_reference=sr,
-                create_all_ten=True,
+                create_all_ten=False,
                 add_to_map=True,
                 progress_callback=progress_notify,
             )
+            arcpy.AddMessage(f"[GDB Export] Successfully saved all QC Feature Classes and Standalone Table into '{qc_gdb}'.")
 
         # Final Summary Notification
         n_errors = len(qc_result.issues_by_severity(Severity.ERROR))
@@ -660,9 +711,9 @@ class GeometryQCTool(object):
         p_txt.category = "Report Outputs"
 
         p_out_fc = arcpy.Parameter(
-            displayName="Output Issue Feature Class (Optional)",
-            name="output_issue_fc",
-            datatype="DEFeatureClass",
+            displayName="Output Standalone Issues Table (Optional)",
+            name="output_issue_table",
+            datatype="DETable",
             parameterType="Optional",
             direction="Output",
         )
@@ -821,15 +872,62 @@ class GeometryQCTool(object):
         layer_summaries = {}
 
         for lname, layer_features in sorted(features_by_layer.items()):
+            sample_shape = next(iter(layer_features.values())) if layer_features else None
+            detected_type = classify_feature_geometry(sample_shape)
+            qc_profile = get_applicable_qc_profile(detected_type)
+
             arcpy.AddMessage("-" * 40)
-            arcpy.AddMessage(f"[CAD Layer: {lname}] Analyzing {len(layer_features)} features...")
-            l_issues, l_summary = run_geometry_qc(
-                features=layer_features,
-                layer_name=lname,
-                source="INPUT",
-                config=config,
-                progress_callback=progress_notify,
+            arcpy.AddMessage(
+                f"[CAD Layer: {lname}] Geometry: {detected_type} | Profile: {qc_profile.name} | "
+                f"Analyzing {len(layer_features)} features..."
             )
+
+            # Route to type-appropriate profile (Polygon, Line, Point)
+            if detected_type == GeometryType.POLYGON:
+                l_issues, l_summary = qc_profile.run(
+                    features=layer_features,
+                    layer_name=lname,
+                    source="INPUT",
+                    config=config,
+                    progress_callback=progress_notify,
+                    issue_id_start=len(all_issues) + 1,
+                )
+            elif detected_type == GeometryType.POLYLINE:
+                line_cfg = LineQCConfig(
+                    short_seg_tolerance_m=short_seg_m,
+                    angle_tolerance_deg=angle_deg,
+                    snap_tolerance_m=snap_m,
+                    redundant_vertex_deg=red_deg,
+                    junction_tolerance_m=junc_m,
+                )
+                l_issues, l_summary = qc_profile.run(
+                    features=layer_features,
+                    layer_name=lname,
+                    source="INPUT",
+                    config=line_cfg,
+                    progress_callback=progress_notify,
+                    issue_id_start=len(all_issues) + 1,
+                )
+            elif detected_type in (GeometryType.POINT, GeometryType.MULTIPOINT):
+                pt_cfg = PointQCConfig(
+                    near_duplicate_tolerance_m=snap_m,
+                )
+                l_issues, l_summary = qc_profile.run(
+                    features=layer_features,
+                    layer_name=lname,
+                    source="INPUT",
+                    config=pt_cfg,
+                    progress_callback=progress_notify,
+                    issue_id_start=len(all_issues) + 1,
+                )
+            else:
+                l_issues, l_summary = qc_profile.run(
+                    features=layer_features,
+                    layer_name=lname,
+                    source="INPUT",
+                    progress_callback=progress_notify,
+                    issue_id_start=len(all_issues) + 1,
+                )
 
             # Check if layer is reserved CAD system layer '0'
             if lname.strip() in ("0", "Defpoints", "DEFPOINTS") and len(layer_features) > 0:
@@ -839,6 +937,7 @@ class GeometryQCTool(object):
                     issue_type="RESERVED_LAYER_CONTAINS_DATA",
                     severity=Severity.WARNING,
                     layer_name=lname,
+                    geometry_type=detected_type,
                     source="INPUT",
                     expected_value="Empty (0 features)",
                     actual_value=f"{len(layer_features)} features",
@@ -868,6 +967,9 @@ class GeometryQCTool(object):
 
             layer_summaries[lname] = {
                 "feature_count": len(layer_features),
+                "geometry_type": detected_type,
+                "qc_profile": qc_profile.name,
+                "applicable_checks": qc_profile.get_applicable_checks(),
                 "total_issues": len(l_issues),
                 "errors": err_count,
                 "warnings": warn_count,
@@ -910,7 +1012,10 @@ class GeometryQCTool(object):
         if gen_html:
             html_path = os.path.join(out_folder, f"Geometry_QC_Report_{timestamp}.html")
             create_html_report(qc_result, html_path)
-            arcpy.AddMessage(f"[Report] HTML dashboard generated: {html_path}")
+            arcpy.AddMessage(f"[Report] HTML dashboard (English): {html_path}")
+            ar_path = os.path.splitext(html_path)[0] + "_ar.html"
+            if os.path.exists(ar_path):
+                arcpy.AddMessage(f"[Report] HTML dashboard (Arabic):  {ar_path}")
 
         if gen_txt:
             txt_path = os.path.join(out_folder, f"Geometry_QC_Report_{timestamp}.txt")
@@ -918,32 +1023,30 @@ class GeometryQCTool(object):
             arcpy.AddMessage(f"[Report] Text summary generated: {txt_path}")
 
         if out_issue_fc:
-            final_sr = sr or get_dataset_spatial_reference(in_fc)
-            write_issues_to_feature_class(
+            write_issues_to_table(
                 issues=qc_result.issues,
-                output_feature_class=out_issue_fc,
-                spatial_reference=final_sr,
+                output_table=out_issue_fc,
                 progress_callback=progress_notify,
             )
-            arcpy.AddMessage(f"[Issues] Issue Feature Class created: {out_issue_fc}")
+            arcpy.AddMessage(f"[Issues] Standalone Issues Table created: {out_issue_fc}")
 
         if export_to_gdb:
             final_sr = sr or get_dataset_spatial_reference(in_fc)
+            resolved_gdb = target_gdb or get_or_create_reports_gdb(out_folder, "CAD_QC_Results.gdb")
             arcpy.AddMessage("=" * 60)
-            arcpy.AddMessage("Exporting 10 QC Error Types into Geodatabase Feature Dataset...")
-            resolved_gdb = target_gdb or get_default_geodatabase()
+            arcpy.AddMessage("Exporting Geometry QC Error Types into Geodatabase Feature Dataset...")
             arcpy.AddMessage(f"[GDB Export] Geodatabase: {resolved_gdb}")
             arcpy.AddMessage(f"[GDB Export] Feature Dataset: {dataset_name}")
             gdb_results = export_qc_errors_to_geodatabase_dataset(
                 issues=all_issues,
-                gdb_path=target_gdb,
+                gdb_path=resolved_gdb,
                 dataset_name=dataset_name,
                 spatial_reference=final_sr,
-                create_all_ten=True,
+                create_all_ten=False,
                 add_to_map=add_to_map,
                 progress_callback=progress_notify,
             )
-            arcpy.AddMessage(f"[GDB Export] Successfully created {len(gdb_results)} feature classes inside dataset '{dataset_name}'.")
+            arcpy.AddMessage(f"[GDB Export] Successfully created {len(gdb_results)} feature classes/tables inside dataset '{dataset_name}'.")
             arcpy.AddMessage("=" * 60)
 
         total_errors = sum(1 for iss in all_issues if iss.severity == Severity.ERROR)

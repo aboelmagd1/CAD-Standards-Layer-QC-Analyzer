@@ -107,5 +107,27 @@ def check_invalid_geometry(
                 current_id += 1
         except Exception:
             pass
+    elif shape_type in ("polyline", "line"):
+        try:
+            if hasattr(shape, "firstPoint") and hasattr(shape, "lastPoint"):
+                fp = shape.firstPoint
+                lp = shape.lastPoint
+                if fp and lp and (abs(fp.X - lp.X) > 1e-4 or abs(fp.Y - lp.Y) > 1e-4):
+                    issues.append(
+                        QCIssue(
+                            issue_id=current_id,
+                            check_id=CheckID.CHK_INVALID_GEOM,
+                            issue_type="UNCLOSED_RING",
+                            severity=Severity.ERROR,
+                            layer_name=layer_name,
+                            source=source,
+                            object_id=feature_id,
+                            location=(fp.X, fp.Y),
+                            details=f"Feature geometry is an open line/polyline (unclosed ring) in expected polygon layer.",
+                        )
+                    )
+                    current_id += 1
+        except Exception:
+            pass
 
     return issues
